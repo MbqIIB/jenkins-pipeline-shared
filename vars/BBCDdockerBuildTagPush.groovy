@@ -13,11 +13,6 @@ def call() {
     def branch = tokens[tokens.size() - 1]
     def sha = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
 
-    // Never build for "magic" tags. If you want to build for these tags, use BBCDdockerBuildTagPush instead
-    if (branch in ["latest", "prod", "volunteer", "oneserver", "canary", "stage"]) {
-        error("I am not allowed to build the '${branch}' branch.")
-    }
-
     // if name starts with docker-, remove the prefix.
     if (repo.startsWith('docker-')) {
         repo = repo.substring(7)
