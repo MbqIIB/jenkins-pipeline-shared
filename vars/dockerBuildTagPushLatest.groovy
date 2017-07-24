@@ -22,7 +22,7 @@ def call() {
 
     // this id will change if we change the credentials it's referencing
     println("Building ${image_name} on branch ${branch} at ${sha}")
-    withDockerRegistry([credentialsId: 'd010b34b-8a68-4389-908d-88dc45a65fef']) {
+    withDockerRegistry([credentialsId: 'dockerhub']) {
         def img = docker.build("${image_name}", "--label com.anchorfree.commit=${sha} --label com.anchorfree.build=${env.BUILD_NUMBER} .")
 
         println("Pushing ${image_name}")
