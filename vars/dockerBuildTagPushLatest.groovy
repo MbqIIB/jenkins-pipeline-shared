@@ -12,6 +12,7 @@ def call() {
     def repo = tokens[tokens.size() - 2]
     def branch = tokens[tokens.size() - 1]
     def sha = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+    def latest_tag = sh(returnStdout: true, script: 'git tag -l --points-at HEAD').trim()
 
     // if name starts with docker-, remove the prefix.
     if (repo.startsWith('docker-')) {
@@ -27,5 +28,13 @@ def call() {
 
         println("Pushing ${image_name}")
         img.push()
+        
+        // If the commit for which we are building is tagged, then 
+        // we want to tag the image with the git tag as well
+        if (latest_tag) {
+            println("Pushing ${image_name}:${latest_tag}")
+            img.push latest_tag
+        }
+
     }
 }
