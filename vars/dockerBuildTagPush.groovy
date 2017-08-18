@@ -13,7 +13,8 @@ def call() {
     def branch = tokens[tokens.size() - 1]
     def sha = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
     def latest_tag = sh(returnStdout: true, script: 'git tag -l --points-at HEAD').trim()
-
+    println("latest tag is ${latest_tag}")
+    
     // Never build for "magic" tags. If you want to build for these tags, use BBCDdockerBuildTagPush instead
     if (branch in ["latest", "prod", "volunteer", "oneserver", "canary", "stage"]) {
         error("I am not allowed to build the '${branch}' branch.")
