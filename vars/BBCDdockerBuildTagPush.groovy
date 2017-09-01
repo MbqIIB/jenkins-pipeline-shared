@@ -8,11 +8,13 @@ package com.anchorfree;
 // Note: that branch job is at -1 because Java uses zero-based indexing
 def call() {
     def tokens = "${env.JOB_NAME}".tokenize('/')
-    def org = tokens[tokens.size()-3]
+    def org = tokens[tokens.size() - 3]
     def repo = tokens[tokens.size() - 2]
     def branch = tokens[tokens.size() - 1]
     def sha = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-    def latest_tag = sh(returnStdout: true, script: 'git tag -l --points-at HEAD').trim()
+    def tags = sh(returnStdout: true, script: 'git tag -l --points-at HEAD').tokenize("\n").collect { it.trim() }
+    def tags_string = tags.join(", ")
+    println("tags [${tags_string}]")
 
     // if name starts with docker-, remove the prefix.
     if (repo.startsWith('docker-')) {
@@ -22,23 +24,38 @@ def call() {
     def image_name = "${org}/${repo}"
     def image_sha_tag = "${image_name}:${sha}"
 
-    // this id will change if we change the credentials it's referencing
     withDockerRegistry([credentialsId: 'dockerhub']) {
-        println("Building ${image_name}:${branch} at ${sha}")
-        def img = docker.build("${image_sha_tag}", "--label com.anchorfree.commit=${sha} --label com.anchorfree.build=${env.BUILD_NUMBER} .")
 
-        println("Pushing ${image_sha_tag}")
-        img.push()
+        // If there are tags, first try docker pull based on the SHA.
+        // If the container can be pulled, apply the tag(s) and push.
+        def img_pulled = false
+        def img = docker.image("${image_name}:${sha}")
 
-        println("Pushing ${image_name}:${branch}")
-        img.push branch
-
-        // If the commit for which we are building is tagged, then 
-        // we want to tag the image with the git tag as well
-        if (latest_tag) {
-            println("Pushing ${image_name}:${latest_tag}")
-            img.push latest_tag
+        if (tags.size() > 0) {
+            println("Pulling ${image_name}:${branch} at ${sha}")
+            try {
+                img.pull()
+                img_pulled = true
+            } catch (Exception e){
+                println("Failed to pull: ${e}")
+            }
         }
 
+        // If I can't pull the image, I need to build it.
+        if (!img_pulled) {
+            println("Building ${image_name}:${branch} at ${sha}")
+            img = docker.build("${image_sha_tag}", "--label com.anchorfree.commit=${sha} --label com.anchorfree.build=${env.BUILD_NUMBER} .")
+
+            println("Pushing ${image_sha_tag}")
+            img.push()
+
+            println("Pushing ${image_name}:${branch}")
+            img.push branch
+        }
+
+        tags.each {
+            println("Pushing ${image_name}:${it}")
+            img.push it
+        }
     }
 }
