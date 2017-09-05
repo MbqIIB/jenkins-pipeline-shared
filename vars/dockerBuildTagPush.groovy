@@ -1,12 +1,12 @@
 package com.anchorfree;
 
-// From: https://github.com/jenkinsci/pipeline-examples/blob/master/pipeline-examples/github-org-plugin/access-repo-information.groovy
-// github-organization-plugin jobs are named as 'org/repo/branch'
-// we don't want to assume that the github-organization job is at the top-level
-// instead we get the total number of tokens (size)
-// and work back from the branch level Pipeline job where this would actually be run
-// Note: that branch job is at -1 because Java uses zero-based indexing
 def call() {
+    // From: https://github.com/jenkinsci/pipeline-examples/blob/master/pipeline-examples/github-org-plugin/access-repo-information.groovy
+    // github-organization-plugin jobs are named as 'org/repo/branch'
+    // we don't want to assume that the github-organization job is at the top-level
+    // instead we get the total number of tokens (size)
+    // and work back from the branch level Pipeline job where this would actually be run
+    // Note: that branch job is at -1 because Java uses zero-based indexing
     def tokens = "${env.JOB_NAME}".tokenize('/')
     def org = tokens[tokens.size() - 3]
     def repo = tokens[tokens.size() - 2]
