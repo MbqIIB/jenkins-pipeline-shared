@@ -1,6 +1,6 @@
 package com.anchorfree;
 
-def call() {
+def call(String[] protected_tags=["latest", "prod", "volunteer", "oneserver", "canary", "stage"]) {
     // From: https://github.com/jenkinsci/pipeline-examples/blob/master/pipeline-examples/github-org-plugin/access-repo-information.groovy
     // github-organization-plugin jobs are named as 'org/repo/branch'
     // we don't want to assume that the github-organization job is at the top-level
@@ -13,6 +13,9 @@ def call() {
     def branch = tokens[tokens.size() - 1]
     def sha = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
     def tags = sh(returnStdout: true, script: 'git tag -l --points-at HEAD').tokenize("\n").collect { it.trim() }
+    if (null == tags) {
+        tags = []
+    }
     def tags_string = tags.join(", ")
     println("tags [${tags_string}]")
 
@@ -43,8 +46,14 @@ def call() {
 
         // If I can't pull the image, I need to build it.
         if (!img_pulled) {
-            // Never build for "magic" branches. If you want to build for these branches, use BBCDdockerBuildTagPush instead.
-            if (branch in ["latest", "prod", "volunteer", "oneserver", "canary", "stage"]) {
+            // Never build for protected branches.
+            // If you must support BBCD behavior, then use dockerBuildTagPush(protected_tags=[])
+            if (null == protected_tags) {
+                protected_tags = []
+            }
+            def protected_tags_string = protected_tags.join(", ")
+            println("Comparing ${branch} to protected_tags [${protected_tags_string}]")
+            if (branch in protected_tags) {
                 error("I am not allowed to build the '${branch}' branch.")
             }
             println("Building ${image_name}:${branch} at ${sha}")
