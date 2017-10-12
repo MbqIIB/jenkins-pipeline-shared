@@ -6,7 +6,7 @@ def call() {
     def tokens = "${env.JOB_NAME}".tokenize('/')
     def org = tokens[tokens.size() - 3]
     def repo = tokens[tokens.size() - 2]
-    def branch = tokens[tokens.size() - 1]
+    def branch = tokens[tokens.size() - 1].replaceAll('%2F','-')
     def sha = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
     def tags = sh(returnStdout: true, script: 'git tag -l --points-at HEAD').tokenize("\n").collect { it.trim() }
     def tags_string = tags.join(", ")
