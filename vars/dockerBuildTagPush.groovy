@@ -27,6 +27,12 @@ def call(String[] protected_tags=["latest", "prod", "volunteer", "oneserver", "c
     def image_name = "${org}/${repo}"
     def image_sha_tag = "${image_name}:${sha}"
 
+    // git-crypt unlock
+    withCredentials([file(credentialsId: 'hssunified-ubuntu.key', variable: 'FILE')]) {
+        println("Unlocking git crypt.")
+        sh 'git crypt unlock $FILE'
+    }
+
     withDockerRegistry([credentialsId: 'dockerhub']) {
 
         // If there are tags, first try docker pull based on the SHA.
