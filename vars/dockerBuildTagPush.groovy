@@ -1,6 +1,6 @@
 package com.anchorfree;
 
-def call(String[] protected_tags=["latest", "prod", "volunteer", "oneserver", "canary", "stage"]) {
+def call(String[] protected_tags=["latest", "prod", "volunteer", "oneserver", "canary", "stage"], String[] build_args=[]) {
     // From: https://github.com/jenkinsci/pipeline-examples/blob/master/pipeline-examples/github-org-plugin/access-repo-information.groovy
     // github-organization-plugin jobs are named as 'org/repo/branch'
     // we don't want to assume that the github-organization job is at the top-level
@@ -62,8 +62,12 @@ def call(String[] protected_tags=["latest", "prod", "volunteer", "oneserver", "c
             if (branch in protected_tags) {
                 error("I am not allowed to build the '${branch}' branch.")
             }
-            println("Building ${image_name}:${branch} at ${sha}")
-            img = docker.build("${image_sha_tag}", "--label com.anchorfree.commit=${sha} --label com.anchorfree.build=${env.BUILD_NUMBER} .")
+            def build_args_string = ""
+            if (null != build_args && build_args.size() > 0) {
+                build_args_string = "--build-arg " + build_args.join(" --build-arg ")
+            }
+            println("Building ${image_name}:${branch} at ${sha} (args: ${build_args_string})")
+            img = docker.build("${image_sha_tag}", "--label com.anchorfree.commit=${sha} --label com.anchorfree.build=${env.BUILD_NUMBER} ${build_args_string} .")
 
             println("Pushing ${image_sha_tag}")
             img.push()
