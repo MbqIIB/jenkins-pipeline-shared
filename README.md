@@ -118,6 +118,26 @@ pipeline {
 }
 ```
 
+### Set build-time variables
+
+To set a [build-time variable](https://docs.docker.com/engine/reference/commandline/build/#set-build-time-variables-build-arg) pass it a second argument:
+
+```groovy
+#!groovy
+
+pipeline {
+    agent { label 'ubuntu16' }
+
+    stages {
+        stage('Build') {
+            steps {
+                dockerBuildTagPush("protected other_protected".split(), "GIT_COMMIT=${ env.GIT_COMMIT } VAR=example".split())
+            }
+        }
+    }   
+}
+```
+
 ### Testing and Development
 
 Use a branch and test with something like the following.
