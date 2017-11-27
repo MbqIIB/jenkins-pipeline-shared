@@ -56,6 +56,32 @@ The above will protect only the branches with the name `protected` and `other_pr
 Note that the `.split()` is critical.
 I have not seen a clean way of declaring a string array in groovy that acutally works for this.
 
+### Ansible "Dry Run"
+
+For automatic syntax checking of ansible playbooks you can use method ansibleCheckSyntax with next arguments:
+- List of playbooks, which should be tested;
+- Inventory file which will be used for dry run;
+
+There are couple of important things:
+- Before list you mast define type `(String[])` (see an example below) or use one string with `split()` method (see an example from **Protected Docker Tags**);
+- Host from inventory for dry run should be accessible
+
+```groovy
+#!groovy
+
+pipeline {
+    agent { label 'ubuntu16' }
+
+    stages {
+        stage('Check') {
+            steps {
+                ansibleCheckSyntax((String[])["someplaybook.yml", "anotherplaybook.yml"], "inventory-dry")
+            }
+        }
+    }
+}
+```
+
 ### Testing and Development
 
 Use a branch and test with something like the following.
