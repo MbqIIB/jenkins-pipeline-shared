@@ -58,14 +58,28 @@ I have not seen a clean way of declaring a string array in groovy that acutally 
 
 ### Ansible "Dry Run"
 
-For automatic syntax checking of ansible playbooks you can use method ansibleCheckSyntax with next arguments:
+For automatic syntax checking of ansible playbooks you can use method `ansibleCheckSyntax` with next arguments:
 - List of playbooks, which should be tested;
 - Inventory file which will be used for dry run;
 
-There are couple of important things:
-- Before list you mast define type `(String[])` (see an example below) or use one string with `split()` method (see an example from **Protected Docker Tags**);
-- Host from inventory for dry run should be accessible
+There are several important things:
+- Before list you mast define type `(String[])` (see an example below) or use one string with `split()` method (see an example from [**Protected Docker Tags**](#protected-docker-tags));
+- Host from inventory for dry run should be accessible;
+- Your repo should be readable by [aftower](https://github.com/aftower) user;
+- If your repo is crypted, you should add `unlock.yml` playbook for unlocking
 
+Example of `unlock.yml`:
+```yml
+- hosts: all
+  gather_facts: False
+  pre_tasks:
+    - name: Unlock repository
+      local_action: shell git-crypt unlock {{ git_crypt_key_path }}
+    - name: Unlock repository common
+      local_action: shell cd roles/common/ && git-crypt unlock {{ git_crypt_key_path }}
+```
+
+Example of `Jenkins` file. `inventory-dry` is a inventory for syntax check, `some_playbook.yml` and `another_playbook.yml` is playbooks which will be checked.
 ```groovy
 #!groovy
 
@@ -75,7 +89,7 @@ pipeline {
     stages {
         stage('Check') {
             steps {
-                ansibleCheckSyntax((String[])["someplaybook.yml", "anotherplaybook.yml"], "inventory-dry")
+                ansibleCheckSyntax((String[])["some_playbook.yml", "another_playbook.yml"], "inventory-dry")
             }
         }
     }
