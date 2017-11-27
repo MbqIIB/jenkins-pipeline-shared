@@ -27,10 +27,6 @@ def call(String[] playbooks, String inventory_file) {
     def awx_cred_id = 2 // for github pulling
     def awx_ssh_id = 6 // for servers' access
     def awx_org_id = 2
-    /* !!! until we doesn't have awx creds in jenkins creds store we had keep it there
-    * def user = "jenkins"
-    * def password = "some_pass"
-    */
     def unlock_required = fileExists(unlock_playbook)
 
     withCredentials([usernamePassword(credentialsId: 'awx', usernameVariable: 'user', passwordVariable: 'password')]) {
