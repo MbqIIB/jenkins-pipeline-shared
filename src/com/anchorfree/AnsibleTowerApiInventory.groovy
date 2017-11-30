@@ -97,13 +97,4 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 			awx.error_messages.add("Unable to receive stdout of inventory update. Probably ${name}(inventory_updates) didn't created: "+e.getMessage())
 		}
 	}
-
-
-	/** We can leave inventory_source because it will be removed by awx as soon as related inventory will be removed
-	*	private remove() {
-	*		def remove_inv_src = remove("inventory_sources", inventory_source)
-	*		def remove_inv = remove(type, subj)
-	*		return remove_inv+remove_inv_src
-	*	}
-	*/
 }
