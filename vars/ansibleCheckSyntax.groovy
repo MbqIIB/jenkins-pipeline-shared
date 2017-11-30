@@ -9,7 +9,7 @@ import com.anchorfree.AnsibleTowerApi
 // and work back from the branch level Pipeline job where this would actually be run
 // Note: that branch job is at -1 because Java uses zero-based indexing
 
-def call(String[] playbooks, String inventory_file) {
+def call(String[] playbooks = ["playbook.yml"] , String inventory_file = "inventory") {
     def tokens = "${env.JOB_NAME}".tokenize('/')
     def org = tokens[tokens.size()-3]
     def repo = tokens[tokens.size() - 2]
