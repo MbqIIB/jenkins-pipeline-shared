@@ -79,7 +79,6 @@ class AnsibleTowerApi {
 			awx.failed=true
 			awx.error_messages.add("Can't check status. Probably ${name}(${type}) didn't created: "+e.getMessage())
 		}
-		
 	}
 
 	def checkOverallStatus() {

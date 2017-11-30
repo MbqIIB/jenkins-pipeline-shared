@@ -10,6 +10,7 @@ class AnsibleTowerApiProject extends AnsibleTowerApi {
 	String scm_branch // also could be a tag or sha
 	Integer awx_cred_id
 	Integer awx_org_id
+	def project_update = null
 
 	AnsibleTowerApiProject(AnsibleTowerApi a, String n, String p, String b, Integer c, Integer o) {
 		super(a); name = n; scm_path = p; scm_branch = b; awx_cred_id = c; awx_org_id = o
@@ -37,5 +38,19 @@ class AnsibleTowerApiProject extends AnsibleTowerApi {
 		def inventory = new AnsibleTowerApiInventory(awx, this, inventory_name, inventory_file)
 		inventory.make()
 		return inventory
+	}
+
+	def stdout() {
+		try {
+			def response = new JenkinsHttpClient().get(awx.host,
+				"api/v2/project_updates/${subj.summary_fields.last_job.id}/", awx.user, awx.password)
+		    if (checkResponse(response, "Can't get project update ${name}") != true ) { return null }
+			project_update = new groovy.json.JsonSlurper().parseText(response.bodyText())
+			awx.out.echo("Stdout of project update ${name}\n"+project_update.result_stdout)
+		}
+		catch(java.lang.NullPointerException e) {
+			awx.failed=true
+			awx.error_messages.add("Can't get job_events. Probably ${name}(${type}) didn't created: "+e.getMessage())
+		}
 	}
 }

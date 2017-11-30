@@ -30,11 +30,17 @@ def call(String[] playbooks, String inventory_file) {
     def unlock_required = fileExists(unlock_playbook)
 
     withCredentials([usernamePassword(credentialsId: 'awx', usernameVariable: 'user', passwordVariable: 'password')]) {
-        echo("Creation of awx project and inventory")
+        echo("Creation of awx project")
         def awx = new AnsibleTowerApi(awx_host, user, password, this)
         def project = awx.createProject(name, scm_path, sha, awx_cred_id, awx_org_id)
-        def inventory = project.createInventory(name, inventory_file)
         project.waitSuccessStatus()
+        project.stdout()
+
+        echo("Creation of awx inventory")
+        def inventory = project.createInventory(name, inventory_file)
+        inventory.launch()
+        inventory.waitSuccessStatus()
+        inventory.stdout()
 
         if (unlock_required) {
             echo("Repositry unlocking")
@@ -59,6 +65,7 @@ def call(String[] playbooks, String inventory_file) {
         inventory.remove()
         project.remove()
 
+        echo("Verify overall result of syntax check")
         awx.checkOverallStatus()
     }
 }
