@@ -20,14 +20,14 @@ class AnsibleTowerApi {
 	AnsibleTowerApi(String a, String u, String p, Script o) { host = a; user = u; password = p; out = o; awx = this }
 	AnsibleTowerApi(AnsibleTowerApi a) { awx = a }
 
-	def createProject(String name, String scm_path, String scm_point, Integer awx_cred_id, Integer awx_org_id) {
+	def createProject(String name, String scm_path, String scm_point, String awx_cred_id, String awx_org_id) {
 		def project = new AnsibleTowerApiProject(this, name, scm_path, scm_point, awx_cred_id, awx_org_id)
 		project.make()
 		return project			
 
 	}
 
-	def createJobTemplate(String name, String job_type, String playbook, Integer credential, String extra_vars,
+	def createJobTemplate(String name, String job_type, String playbook, String credential, String extra_vars,
 			AnsibleTowerApiProject project, AnsibleTowerApiInventory inventory) {
 		def job_template = new AnsibleTowerApiJobTemplate(this, name, job_type, playbook, credential, 
 			extra_vars, project, inventory)

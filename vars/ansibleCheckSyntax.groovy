@@ -22,17 +22,41 @@ def call(String[] playbooks, String inventory_file) {
     }
     def name = "${repo}(${sha.substring(0,7)})" // general name of awx's objects
     def unlock_playbook = "unlock.yml"
-    def unlock_vars = "git_crypt_key_path: /tmp/hssunified-ubuntu.key"
-    def awx_host = "awx.afdevops.com"
-    def awx_cred_id = 2 // for github pulling
-    def awx_ssh_id = 6 // for servers' access
-    def awx_org_id = 2
-    def unlock_required = fileExists(unlock_playbook)
+    def unlock_required = fileExists(unlock_playbook)    
 
-    withCredentials([usernamePassword(credentialsId: 'awx', usernameVariable: 'user', passwordVariable: 'password')]) {
+    /*** Credentials which used from Jenkins credentials store:
+    * awx                       - Creds for access to Ansible Tower API
+    * awx_git_crypt_key_path    - Path for standard git-crypt key on AWX host
+    * awx_host                  - AWX DNS entrypoint
+    * awx_git_cred              - Credential's ID which stored on AWX (github's key of 'aftower' user)
+    * awx_ssh_cred              - Credential's ID which stored on AWX ('aftower' ssh key)
+    * awx_org                   - ID of Ansible Tower's Organization (aka AnchorFree)
+    */
+
+    /* As soon Jenkins will masks all strings which match with secrets values
+    * we can faced with a lot of * symbols in playbooks' output.
+    * It happens because next credential's variables is a digits.
+    * It is not really sensitive so we make it insecure (move out from security block)
+    * and we make playbooks's result more readable.
+    */
+    def awx_git_cred, awx_ssh_cred, awx_org
+    withCredentials([string(credentialsId: 'awx_git_cred', variable: 'awx_git_cred_id'),
+                    string(credentialsId: 'awx_ssh_cred', variable: 'awx_ssh_cred_id'),
+                    string(credentialsId: 'awx_org', variable: 'awx_org_id')]) {
+        awx_git_cred = awx_git_cred_id
+        awx_ssh_cred = awx_ssh_cred_id
+        awx_org = awx_org_id
+    }
+
+    withCredentials([usernamePassword(credentialsId: 'awx', usernameVariable: 'user', passwordVariable: 'password'),
+            string(credentialsId: 'awx_git_crypt_key_path', variable: 'awx_git_crypt_key_path'),
+            string(credentialsId: 'awx_host', variable: 'awx_host')]) {
+
+        def unlock_vars = "git_crypt_key_path: ${awx_git_crypt_key_path}"
+
         echo("Creation of awx project")
         def awx = new AnsibleTowerApi(awx_host, user, password, this)
-        def project = awx.createProject(name, scm_path, sha, awx_cred_id, awx_org_id)
+        def project = awx.createProject(name, scm_path, sha, awx_git_cred, awx_org)
         project.waitSuccessStatus()
         project.stdout()
 
@@ -45,7 +69,7 @@ def call(String[] playbooks, String inventory_file) {
         if (unlock_required) {
             echo("Repositry unlocking")
             def unlock = awx.createJobTemplate("${name} - unlock", "run", 
-                unlock_playbook, awx_ssh_id, unlock_vars, project, inventory)
+                unlock_playbook, awx_ssh_cred, unlock_vars, project, inventory)
             unlock.launch()
             unlock.waitSuccessStatus()
             unlock.stdout()
@@ -55,7 +79,7 @@ def call(String[] playbooks, String inventory_file) {
         playbooks.each { playbook ->
             echo("Dry run of ${playbook}")
             def dry_run = awx.createJobTemplate("${name} - ${playbook} dry_run", "check",
-                playbook, awx_ssh_id, "", project, inventory)
+                playbook, awx_ssh_cred, "", project, inventory)
             dry_run.launch()
             dry_run.waitSuccessStatus()
             dry_run.stdout()

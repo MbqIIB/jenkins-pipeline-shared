@@ -7,13 +7,13 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 	String name = null
 	String job_type = null
 	String playbook = null
-	Integer credential = null
+	String credential = null
 	String extra_vars = null
 	AnsibleTowerApiProject project = null
 	AnsibleTowerApiInventory inventory = null
 	def job_events = null
 
-	AnsibleTowerApiJobTemplate(AnsibleTowerApi a, String n, String t, String pl, Integer c, String v,
+	AnsibleTowerApiJobTemplate(AnsibleTowerApi a, String n, String t, String pl, String c, String v,
 			AnsibleTowerApiProject pr, AnsibleTowerApiInventory i) {
 		super(a); name = n; job_type = t; playbook = pl;
 		credential = c; extra_vars = v; project = pr; inventory = i

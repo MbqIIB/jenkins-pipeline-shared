@@ -8,11 +8,11 @@ class AnsibleTowerApiProject extends AnsibleTowerApi {
 	String name
 	String scm_path
 	String scm_branch // also could be a tag or sha
-	Integer awx_cred_id
-	Integer awx_org_id
+	String awx_cred_id
+	String awx_org_id
 	def project_update = null
 
-	AnsibleTowerApiProject(AnsibleTowerApi a, String n, String p, String b, Integer c, Integer o) {
+	AnsibleTowerApiProject(AnsibleTowerApi a, String n, String p, String b, String c, String o) {
 		super(a); name = n; scm_path = p; scm_branch = b; awx_cred_id = c; awx_org_id = o
 		type = "projects"
 	}
