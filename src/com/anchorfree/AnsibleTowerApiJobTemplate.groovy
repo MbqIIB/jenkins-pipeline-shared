@@ -25,7 +25,7 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 	def make() {
 		try {
 		    def messageBody = ['name': name,
-		        'description': "Created by jenkins",
+				'description': "Created by jenkins",
 				'job_type': job_type,
 				'inventory': inventory.subj.id,
 				'project': project.subj.id,
