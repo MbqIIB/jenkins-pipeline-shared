@@ -30,7 +30,7 @@ class AnsibleTowerApiProject extends AnsibleTowerApi {
 	        'organization': awx_org_id,
 	        'scm_update_on_launch': 'true' ]
 	    def response = new JenkinsHttpClient().postJson(awx.host, "api/v2/projects/", messageBody, awx.user, awx.password)
-	    if (checkResponse(response, "Can't create project ${name}") != true ) { return null }
+	    if (checkResponse(response, "Unable to create project ${name}") != true ) { return null }
 		subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
 	}
 
@@ -44,13 +44,13 @@ class AnsibleTowerApiProject extends AnsibleTowerApi {
 		try {
 			def response = new JenkinsHttpClient().get(awx.host,
 				"api/v2/project_updates/${subj.summary_fields.last_job.id}/", awx.user, awx.password)
-		    if (checkResponse(response, "Can't get project update ${name}") != true ) { return null }
+		    if (checkResponse(response, "Unable to trigger project update ${name}") != true ) { return null }
 			project_update = new groovy.json.JsonSlurper().parseText(response.bodyText())
 			awx.out.echo("Stdout of project update ${name}\n"+project_update.result_stdout)
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.failed=true
-			awx.error_messages.add("Can't get job_events. Probably ${name}(${type}) didn't created: "+e.getMessage())
+			awx.error_messages.add("Unable to get job_events. Probably ${name}(${type}) didn't created: "+e.getMessage())
 		}
 	}
 }

@@ -24,7 +24,7 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 	        'kind':'' ]
 	    def response = new JenkinsHttpClient().postJson(awx.host, "api/v2/inventories/",
 	    	messageBody, awx.user, awx.password)
-	    if (checkResponse(response, "Can't create inventory ${name}") != true ) { return null }
+	    if (checkResponse(response, "Unable to create inventory ${name}") != true ) { return null }
 		subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
 		inventory_source = createInventorySource(name)
 	}
@@ -52,12 +52,12 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 				'update_on_project_update': false ]
 		    def response = request.postJson(awx.host, "api/v2/inventories/${subj.id}/inventory_sources/",
 		    	messageBody, awx.user, awx.password)
-		    if (checkResponse(response, "Can't create inventory source ${inventory_source_name}") != true ) { return null }
+		    if (checkResponse(response, "Unable to create inventory source ${inventory_source_name}") != true ) { return null }
 			return new groovy.json.JsonSlurper().parseText(response.bodyText())
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.failed=true
-			awx.error_messages.add("Can't create inventory source ${inventory_source_name}. Probably ${project.name}(${project.type}) didn't created: \n"+e.getMessage())
+			awx.error_messages.add("Unable to create inventory source ${inventory_source_name}. Probably ${project.name}(${project.type}) didn't created: \n"+e.getMessage())
 			return null
 		}
 	}
@@ -65,12 +65,12 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 	def launch() {
 		try {
 		    def response = new JenkinsHttpClient().postJson(awx.host, "/api/v2/inventory_sources/${inventory_source.id}/update/", [:], awx.user, awx.password)
-		    if (checkResponse(response, "Can't launch inventory update ${name}") != true ) { return null }
+		    if (checkResponse(response, "Unable to trigger inventory update ${name}") != true ) { return null }
 			inventory_update = new groovy.json.JsonSlurper().parseText(response.bodyText())			
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.failed=true
-			awx.error_messages.add("Can't launch inventory update. Probably ${name}(inventory_source) didn't created: "+e.getMessage())
+			awx.error_messages.add("Unable to trigger inventory update. Probably ${name}(inventory_source) didn't created: "+e.getMessage())
 		}
 	}
 
@@ -84,7 +84,7 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.failed=true
-			awx.error_messages.add("Can't check status. Probably ${name}(inventory_updates) didn't created: "+e.getMessage())
+			awx.error_messages.add("Unable to receive status. Probably ${name}(inventory_updates) didn't created: "+e.getMessage())
 		}
 	}
 
@@ -94,7 +94,7 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.failed=true
-			awx.error_messages.add("Can't get stdout of inventory update. Probably ${name}(inventory_updates) didn't created: "+e.getMessage())
+			awx.error_messages.add("Unable to receive stdout of inventory update. Probably ${name}(inventory_updates) didn't created: "+e.getMessage())
 		}
 	}
 

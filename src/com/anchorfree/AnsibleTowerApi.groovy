@@ -47,7 +47,7 @@ class AnsibleTowerApi {
 		}
 		catch(Exception e) {
 			awx.failed=true
-			awx.error_messages.add("Can't check response: \n"+e.getMessage())
+			awx.error_messages.add("Unable to receive response: \n"+e.getMessage())
 			return false
 		}
 
@@ -55,7 +55,7 @@ class AnsibleTowerApi {
 
 	def update(String path = "api/v2/${type}/${subj.id}/" ) {
 	    def response = new JenkinsHttpClient().get(awx.host, path, awx.user, awx.password)
-	    if (checkResponse(response, "Can't get status of ${path}") != true ) { return null } 
+	    if (checkResponse(response, "Unable to receive status of ${path}") != true ) { return null } 
 		return new groovy.json.JsonSlurper().parseText(response.bodyText())
 	}
 
@@ -77,7 +77,7 @@ class AnsibleTowerApi {
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.failed=true
-			awx.error_messages.add("Can't check status. Probably ${name}(${type}) didn't created: "+e.getMessage())
+			awx.error_messages.add("Unable to receive status. Probably ${name}(${type}) didn't created: "+e.getMessage())
 		}
 	}
 
@@ -91,12 +91,12 @@ class AnsibleTowerApi {
 	def remove(obj = subj, String path = type) {
 		try {
 		    def response = new JenkinsHttpClient().delete(awx.host, "api/v2/${path}/${obj.id}/", awx.user, awx.password)
-		    checkResponse(response, "Can't remove ${path}/${obj.id} ")
+		    checkResponse(response, "Unable to remove ${path}/${obj.id} ")
 		    return response.bodyText()			
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.failed=true
-			awx.error_messages.add("Can't remove. Probably ${name}(${type}) didn't created: "+e.getMessage())			
+			awx.error_messages.add("Unable to remove. Probably ${name}(${type}) didn't created: "+e.getMessage())			
 		}
 	}
 }
