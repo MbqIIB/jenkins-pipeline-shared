@@ -10,7 +10,7 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 	def inventory_source = null
 	def inventory_update = null
 
-	AnsibleTowerApiInventory(AnsibleTowerApi a, AnsibleTowerApiProject pr, String n, String i) {
+	AnsibleTowerApiInventory(AnsibleTowerApi a, AnsibleTowerApiProject pr, String n, String i = '') {
 		super(a); project = pr; name = n; inventory_file = i
 		type = "inventories"
 	}
@@ -26,7 +26,18 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 	    	messageBody, awx.user, awx.password)
 	    if (checkResponse(response, "Unable to create inventory ${name}") != true ) { return null }
 		subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
-		inventory_source = createInventorySource(name)
+		if (inventory_file != '') { inventory_source = createInventorySource(name) }
+	}
+
+	def addHost(String host_name, String host_variables) {
+	    def messageBody = ['name': host_name,
+	        'description': "added by jenkins",
+	        'enabled': true,
+	        'instance_id': '',
+	        'variables': host_variables ]
+	    def response = new JenkinsHttpClient().postJson(awx.host, "api/v2/inventories/${subj.id}/hosts/",
+	    	messageBody, awx.user, awx.password)
+	    if (checkResponse(response, "Unable to add host ${host_name} to inventory ${name}") != true ) { return null }
 	}
 
 	def createInventorySource(String inventory_source_name) {

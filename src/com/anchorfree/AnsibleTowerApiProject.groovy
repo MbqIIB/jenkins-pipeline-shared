@@ -34,7 +34,7 @@ class AnsibleTowerApiProject extends AnsibleTowerApi {
 		subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
 	}
 
-	def createInventory(String inventory_name, String inventory_file) {
+	def createInventory(String inventory_name, String inventory_file = '') {
 		def inventory = new AnsibleTowerApiInventory(awx, this, inventory_name, inventory_file)
 		inventory.make()
 		return inventory

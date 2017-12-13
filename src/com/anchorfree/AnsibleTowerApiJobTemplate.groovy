@@ -9,14 +9,20 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 	String playbook = null
 	String credential = null
 	String extra_vars = null
+	String limit = null
+	String job_tags = null
+	String skip_tags = null
+	String start_at_task = null
 	AnsibleTowerApiProject project = null
 	AnsibleTowerApiInventory inventory = null
 	def job_events = null
 
 	AnsibleTowerApiJobTemplate(AnsibleTowerApi a, String n, String t, String pl, String c, String v,
-			AnsibleTowerApiProject pr, AnsibleTowerApiInventory i) {
+			AnsibleTowerApiProject pr, AnsibleTowerApiInventory i,
+			String l, String tags, String skip, String start) {
 		super(a); name = n; job_type = t; playbook = pl;
 		credential = c; extra_vars = v; project = pr; inventory = i
+		limit = l; job_tags = tags; skip_tags = skip; start_at_task = start
 		type = "job_templates"
 	}
 
@@ -33,13 +39,13 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 				'credential': credential,
 				'vault_credential': null,
 				'forks': 0,
-				'limit': '',
+				'limit': limit,
 				'verbosity': 0,
 				'extra_vars': extra_vars,
-				'job_tags': '',
+				'job_tags': job_tags,
 				'force_handlers': false,
-				'skip_tags': '',
-				'start_at_task': '',
+				'skip_tags': skip_tags,
+				'start_at_task': start_at_task,
 				'timeout': 0,
 				'use_fact_cache': false,
 				'host_config_key': '',

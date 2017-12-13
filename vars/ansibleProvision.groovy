@@ -9,21 +9,38 @@ import com.anchorfree.AnsibleTowerApi
 // and work back from the branch level Pipeline job where this would actually be run
 // Note: that branch job is at -1 because Java uses zero-based indexing
 
-def call(String[] playbooks = ["playbook.yml"] , String inventory_file = "inventory",
-            extra_vars = '', limit = '', job_tags = '', skip_tags = '') {
+def call(String[] playbooks = ["playbook.yml"] , Map<String, String> hosts,
+            extra_vars = '', limit = '', job_tags = '', skip_tags = '', external_sha = '') {
     def tokens = "${env.JOB_NAME}".tokenize('/')
     def org = tokens[tokens.size()-3]
     def repo = tokens[tokens.size() - 2]
     def branch = tokens[tokens.size() - 1].replaceAll('%2F','-')
-    def sha = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+    def original_sha = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+    
     def scm_path = "${org}/${repo}"
     // if name starts with ansible-, remove the prefix.
     if (repo.startsWith('ansible-')) {
         repo = repo.substring(8)
     }
-    def name = "${repo}(${sha.substring(0,7)})" // general name of awx's objects
+    
     def unlock_playbook = "unlock.yml"
-    def unlock_required = fileExists(unlock_playbook)    
+    def unlock_required = fileExists(unlock_playbook)
+
+    def sha // commit/tag which will be used for provision
+    def name // general name of awx's objects    
+    if (external_sha == '') {
+        sha = original_sha
+        name = "${repo}(${sha.substring(0,7)})"
+    }
+    else {
+        sha = external_sha
+        if (external_sha.length() == 40) { // if it real sha make it short
+            external_sha = "${external_sha.substring(0,7)}"
+        }
+        // if we got external sha/tag we will mark it name to prevent of conflicts in awx
+        name = "${repo}(${original_sha.substring(0,7)})/(${external_sha})"
+    }
+ 
 
     /*** Credentials which used from Jenkins credentials store:
     * awx                       - Creds for access to Ansible Tower API
@@ -62,10 +79,8 @@ def call(String[] playbooks = ["playbook.yml"] , String inventory_file = "invent
         project.stdout()
 
         echo("Creation of awx inventory")
-        def inventory = project.createInventory(name, inventory_file)
-        inventory.launch()
-        inventory.waitSuccessStatus()
-        inventory.stdout()
+        def inventory = project.createInventory(name)
+        hosts.each{ host, variables -> inventory.addHost(host, variables) }
 
         if (unlock_required) {
             echo("Repositry unlocking")
@@ -79,7 +94,7 @@ def call(String[] playbooks = ["playbook.yml"] , String inventory_file = "invent
         
         playbooks.each { playbook ->
             echo("Dry run of ${playbook}")
-            def dry_run = awx.createJobTemplate("${name} - ${playbook} dry_run", "check",
+            def dry_run = awx.createJobTemplate("${name} - ${playbook}", "run",
                 playbook, awx_ssh_cred, extra_vars, project, inventory, limit, job_tags, skip_tags)
             dry_run.launch()
             dry_run.waitSuccessStatus()
@@ -90,7 +105,7 @@ def call(String[] playbooks = ["playbook.yml"] , String inventory_file = "invent
         inventory.remove()
         project.remove()
 
-        echo("Verify overall result of syntax check")
+        echo("Verify overall result of provisioning")
         awx.checkOverallStatus()
     }
 }
