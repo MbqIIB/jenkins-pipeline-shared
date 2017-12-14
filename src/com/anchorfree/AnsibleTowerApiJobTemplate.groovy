@@ -15,7 +15,6 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 	String start_at_task = null
 	AnsibleTowerApiProject project = null
 	AnsibleTowerApiInventory inventory = null
-	def job_events = null
 
 	AnsibleTowerApiJobTemplate(AnsibleTowerApi a, String n, String t, String pl, String c, String v,
 			AnsibleTowerApiProject pr, AnsibleTowerApiInventory i,
@@ -85,20 +84,41 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 		}
 	}
 
-	def stdout() {
+	def getJobEvents(job_events, String path) {
 		try {
-			def response = new JenkinsHttpClient().get(awx.host,
-				"api/v2/jobs/${subj.summary_fields.last_job.id}/job_events/", awx.user, awx.password)
+			def response = new JenkinsHttpClient().get(awx.host, path, awx.user, awx.password)
 		    if (checkResponse(response, "Unable to receive job's events ${name}") != true ) { return null }
-			job_events = new groovy.json.JsonSlurper().parseText(response.bodyText())
-			def stdout_full = []
+			def page = new groovy.json.JsonSlurper().parseText(response.bodyText())
+			job_events.add(page)
+			if (page.next != null) {
+				job_events = getJobEvents(job_events, page.next)
+			}
+			return job_events
+		}
+		catch(java.lang.NullPointerException e) {
+			awx.failed=true
+			awx.error_messages.add("Unable to read page->next. Probably page '${path}' doesn't exist: "+e.getMessage())
+			return job_events
+		}
+	}
+
+	def stdout() {
+		def stdout_full = []
+		def job_events = []
+		try {
+			job_events = getJobEvents(job_events, "api/v2/jobs/${subj.summary_fields.last_job.id}/job_events/")
 			stdout_full.add("Stdout of ${name}")
-			job_events.results.each { event -> stdout_full.add(event.stdout) }
+			job_events.each { page ->
+				page.results.each { event ->
+					stdout_full.add(event.stdout)
+				}
+			}
 			awx.out.echo(stdout_full.join('\n'))
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.failed=true
 			awx.error_messages.add("Unable to receive job_events. Probably ${name}(${type}) didn't created: "+e.getMessage())
+			awx.out.echo(stdout_full.join('\n'))
 		}
 	}
 }
