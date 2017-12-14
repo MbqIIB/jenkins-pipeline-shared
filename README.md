@@ -2,6 +2,15 @@
 
 Shared Pipeline Library for Jenkins builds at AF.
 
+## shellcheck
+
+An extremely simple check which runs the [shellcheck](https://www.shellcheck.net/) static analysis on all `.sh` scripts in the repo.
+Depends on scripts having a `.sh` suffix.
+
+## dockerBuildTagPush
+
+Run docker build, tag and push for containers.
+
 ### Usage Example
 
 ```groovy
@@ -11,6 +20,11 @@ pipeline {
     agent { label 'ubuntu16' }
 
     stages {
+        stage('Shellcheck') {
+            steps {
+                shellcheck()
+            }
+        }
         stage('Build') {
             steps {
                 dockerBuildTagPush()
