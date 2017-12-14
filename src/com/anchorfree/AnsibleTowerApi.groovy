@@ -84,8 +84,7 @@ class AnsibleTowerApi {
 
 	def checkOverallStatus() {
 		if (awx.failed != false) {
-			def allErrors = "Error messages:\n"+awx.error_messages.join('\n')+"\n\n"
-			assert awx.failed == false : "${allErrors}"
+			awx.out.error("Error messages:\n"+awx.error_messages.join('\n')+"\n\n")
 		}
 	}
 
