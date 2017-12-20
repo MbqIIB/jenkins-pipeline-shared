@@ -28,10 +28,10 @@ class AnsibleTowerApi {
 	}
 
 	def createJobTemplate(String name, String job_type, String playbook, String credential, String extra_vars,
-			AnsibleTowerApiProject project, AnsibleTowerApiInventory inventory,
-			String limit = '', String job_tags = '', skip_tags = '', start_at_task = '') {
+			AnsibleTowerApiProject project, AnsibleTowerApiInventory inventory, String become = 'false',
+			String limit = '', String job_tags = '', String skip_tags = '', String start_at_task = '') {
 		def job_template = new AnsibleTowerApiJobTemplate(this, name, job_type, playbook, credential, 
-			extra_vars, project, inventory, limit, job_tags, skip_tags, start_at_task)
+			extra_vars, project, inventory, become, limit, job_tags, skip_tags, start_at_task)
 		job_template.make()
 		return job_template
 	}

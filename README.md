@@ -77,6 +77,7 @@ For automatic syntax checking of ansible playbooks you can use method `ansibleCh
 - Inventory file which will be used for dry run (`inventory` by default);
 - Extra vars which will be used for dry run (otional);
 - Limit: host pattern to further constrain the list of hosts that will be used for dry run (otional);
+- Enable Privilege Escalation (aka _become_ flag) as string, `"true"` or `"false"` (`"true"` by default);
 - Job tags: specific part of a playbook or tasks which you want to play only for dry run (otional);
 - Skip tags: specific part of a playbook or tasks which you want to skip for dry run (otional);
 
@@ -94,7 +95,7 @@ from="45.55.29.214" ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDHNY3J4Xb1/Uny1gE5jPW5
 
 Example of `unlock.yml`:
 ```yml
-- hosts: all
+- hosts: all[0]
   gather_facts: False
   pre_tasks:
     - name: Unlock repository
@@ -136,7 +137,7 @@ pipeline {
     stages {
         stage('Check') {
             steps {
-                ansibleCheckSyntax((String[])["playbook.yml", "another_playbook.yml"], "inventory", "ansible_user: someuser", "some-host-group", "", "packer")
+                ansibleCheckSyntax((String[])["playbook.yml", "another_playbook.yml"], "inventory", "ansible_user: someuser", "some-host-group", "true", "", "packer")
             }
         }
     }
@@ -151,6 +152,7 @@ For automatic ansible provision you can use method `ansibleProvision()`. Next ar
 - Map of hosts which should be provisioned (list of pairs `HOSTNAME`:`HOST'S VARS`);
 - Extra vars which will be used for provision (otional);
 - Limit: host pattern to further constrain the list of hosts that will be used for provision (otional);
+- Enable Privilege Escalation (aka _become_ flag) as string, `"true"` or `"false"` (`"true"` by default);
 - Job tags: specific part of a playbook or tasks which you want to play only for provision (otional);
 - Skip tags: specific part of a playbook or tasks which you want to skip for provision (otional);
 - Custom git sha/tag which will be provisioned (optional);
@@ -200,7 +202,7 @@ pipeline {
     stages {
         stage('Deploy') {
             steps {
-                ansibleProvision((String[])["playbook.yml"], (Map<String, String>)["somehost":"{\"target_hostname\": \"somehost\", \"ansible_host\": \"1.1.1.1\", \"provider\": \"do\", \"owner\": \"someone\"}"], "ansible_user: someuser", "", "", "packer", "stable_tag")
+                ansibleProvision((String[])["playbook.yml"], (Map<String, String>)["somehost":"{\"target_hostname\": \"somehost\", \"ansible_host\": \"1.1.1.1\", \"provider\": \"do\", \"owner\": \"someone\"}"], "ansible_user: someuser", "", "true", "", "packer", "stable_tag")
             }
         }
     }

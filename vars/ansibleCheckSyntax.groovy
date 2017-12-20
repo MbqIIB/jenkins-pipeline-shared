@@ -10,7 +10,7 @@ import com.anchorfree.AnsibleTowerApi
 // Note: that branch job is at -1 because Java uses zero-based indexing
 
 def call(String[] playbooks = ["playbook.yml"] , String inventory_file = "inventory",
-            extra_vars = '', limit = '', job_tags = '', skip_tags = '') {
+            extra_vars = '', limit = '', become = 'true', job_tags = '', skip_tags = '') {
     def tokens = "${env.JOB_NAME}".tokenize('/')
     def org = tokens[tokens.size()-3]
     def repo = tokens[tokens.size() - 2]
@@ -80,7 +80,7 @@ def call(String[] playbooks = ["playbook.yml"] , String inventory_file = "invent
         playbooks.each { playbook ->
             echo("Dry run of ${playbook}")
             def dry_run = awx.createJobTemplate("${name} - ${playbook} dry_run", "check",
-                playbook, awx_ssh_cred, extra_vars, project, inventory, limit, job_tags, skip_tags)
+                playbook, awx_ssh_cred, extra_vars, project, inventory, become, limit, job_tags, skip_tags)
             dry_run.launch()
             dry_run.waitSuccessStatus()
             dry_run.stdout()

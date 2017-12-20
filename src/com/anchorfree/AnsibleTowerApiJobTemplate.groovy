@@ -13,14 +13,15 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 	String job_tags = null
 	String skip_tags = null
 	String start_at_task = null
+	String become_enabled = null
 	AnsibleTowerApiProject project = null
 	AnsibleTowerApiInventory inventory = null
 
 	AnsibleTowerApiJobTemplate(AnsibleTowerApi a, String n, String t, String pl, String c, String v,
-			AnsibleTowerApiProject pr, AnsibleTowerApiInventory i,
+			AnsibleTowerApiProject pr, AnsibleTowerApiInventory i, String become,
 			String l, String tags, String skip, String start) {
 		super(a); name = n; job_type = t; playbook = pl;
-		credential = c; extra_vars = v; project = pr; inventory = i
+		credential = c; extra_vars = v; project = pr; inventory = i; become_enabled = become
 		limit = l; job_tags = tags; skip_tags = skip; start_at_task = start
 		type = "job_templates"
 	}
@@ -58,7 +59,7 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 				'ask_inventory_on_launch': false,
 				'ask_credential_on_launch': false,
 				'survey_enabled': false,
-				'become_enabled': false,
+				'become_enabled': become_enabled,
 				'diff_mode': false,
 				'allow_simultaneous': false ]
 		    def response = new JenkinsHttpClient().postJson(awx.host, "api/v2/job_templates/", messageBody, awx.user, awx.password)
