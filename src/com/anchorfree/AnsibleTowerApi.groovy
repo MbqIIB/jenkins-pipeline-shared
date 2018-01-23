@@ -36,19 +36,29 @@ class AnsibleTowerApi {
 		return job_template
 	}
 
+	/*** Process an error
+	* message - wide error message which will be added to stack
+	* error - will show red mark with this short text if it's defined
+	* failed - overal project state (default true)
+	*/
+	def addError(String message = "", error = null, failed = true) {
+		awx.failed=failed
+		awx.error_messages.add(message)
+		// create red marker with short message if it's present
+		if (error != null) {try { awx.out.error(error) } catch (err) {}}
+	}
+
 	// Check that response's code is 2xx
-    def checkResponse(response, String message) {
+    def checkResponse(response, String message, error = null) {
 		try {
-	    	if (String.valueOf(response.statusCode()).take(1) != "2") {
-		    	awx.failed=true
-		    	awx.error_messages.add("${message}. Response: ${response.statusCode()} ${response.statusPhrase()}; Message: ${response.bodyText()}")
-		    	return false
+			if (String.valueOf(response.statusCode()).take(1) != "2") {
+				awx.addError("${message}. Response: ${response.statusCode()} ${response.statusPhrase()}; Message: ${response.bodyText()}", error)
+				return false
 		    }
 		    return true
 		}
 		catch(Exception e) {
-			awx.failed=true
-			awx.error_messages.add("Unable to receive response: \n"+e.getMessage())
+			awx.addError("Unable to receive response: \n"+e.getMessage(), error)
 			return false
 		}
 
@@ -72,19 +82,20 @@ class AnsibleTowerApi {
 		try {
 			subj = waitStatus()
 			if (subj.status != "successful") {
-				awx.failed=true
-				awx.error_messages.add("${name} (${type}) status is ${subj.status}")
+				awx.addError("${name} (${type}) status is ${subj.status}", "Status is ${subj.status}")
 			}			
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.failed=true
-			awx.error_messages.add("Unable to receive status. Probably ${name}(${type}) didn't created: "+e.getMessage())
+			awx.addError("Unable to receive status. Probably ${name}(${type}) didn't created: "+e.getMessage(), "Unable to receive status")
 		}
 	}
 
 	def checkOverallStatus() {
 		if (awx.failed != false) {
-			awx.out.error("Error messages:\n"+awx.error_messages.join('\n')+"\n\n")
+			awx.out.echo("Error messages:\n"+awx.error_messages.join('\n')+"\n\n")
+			// Error signal step body could be not expanded
+			// https://issues.jenkins-ci.org/browse/JENKINS-46112
+			awx.out.error("Please take a look step above")
 		}
 	}
 
@@ -95,8 +106,7 @@ class AnsibleTowerApi {
 		    return response.bodyText()			
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.failed=true
-			awx.error_messages.add("Unable to remove. Probably ${name}(${type}) didn't created: "+e.getMessage())			
+			awx.addError("Unable to remove. Probably ${name}(${type}) didn't created: "+e.getMessage(), "Unable to remove")
 		}
 	}
 }

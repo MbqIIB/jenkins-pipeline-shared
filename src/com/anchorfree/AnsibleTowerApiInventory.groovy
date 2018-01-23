@@ -67,8 +67,7 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 			return new groovy.json.JsonSlurper().parseText(response.bodyText())
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.failed=true
-			awx.error_messages.add("Unable to create inventory source ${inventory_source_name}. Probably ${project.name}(${project.type}) didn't created: \n"+e.getMessage())
+			awx.addError("Unable to create inventory source ${inventory_source_name}. Probably ${project.name}(${project.type}) didn't created: \n"+e.getMessage(), "Unable to create inventory source")
 			return null
 		}
 	}
@@ -80,8 +79,7 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 			inventory_update = new groovy.json.JsonSlurper().parseText(response.bodyText())			
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.failed=true
-			awx.error_messages.add("Unable to trigger inventory update. Probably ${name}(inventory_source) didn't created: "+e.getMessage())
+			awx.addError("Unable to trigger inventory update. Probably ${name}(inventory_source) didn't created: "+e.getMessage(), "Unable to trigger inventory update")
 		}
 	}
 
@@ -89,13 +87,11 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 		try {
 			inventory_update = waitStatus(inventory_update, "api/v2/inventory_updates/${inventory_update.id}/")
 			if (inventory_update.status != "successful") {
-				awx.failed=true
-				awx.error_messages.add("${name} (inventory_updates) status is ${inventory_update.status}")
+				awx.addError("${name} (inventory_updates) status is ${inventory_update.status}", "inventory_updates bad status")
 			}			
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.failed=true
-			awx.error_messages.add("Unable to receive status. Probably ${name}(inventory_updates) didn't created: "+e.getMessage())
+			awx.addError("Unable to receive status. Probably ${name}(inventory_updates) didn't created: "+e.getMessage(), "Unable to receive status")
 		}
 	}
 
@@ -104,8 +100,7 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 			awx.out.echo("Stdout of inventory update ${name}\n"+inventory_update.result_stdout)
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.failed=true
-			awx.error_messages.add("Unable to receive stdout of inventory update. Probably ${name}(inventory_updates) didn't created: "+e.getMessage())
+			awx.addError("Unable to receive stdout of inventory update. Probably ${name}(inventory_updates) didn't created: "+e.getMessage(), "No stdout for inventory update")
 		}
 	}
 }

@@ -67,8 +67,7 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 			subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.failed=true
-			awx.error_messages.add("Unable to create job template ${name}. Probably ${project.name}(${project.type}) or ${inventory.name}(${inventory.type}) didn't created: "+e.getMessage())
+			awx.addError("Unable to create job template ${name}. Probably ${project.name}(${project.type}) or ${inventory.name}(${inventory.type}) didn't created: "+e.getMessage(), "Unable to create job template")
 		}
 	}
 
@@ -80,8 +79,7 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 			subj = update("api/v2/${type}/${subj.id}/")			
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.failed=true
-			awx.error_messages.add("Unable to launch job. Probably ${name}(${type}) didn't created: "+e.getMessage())
+			awx.addError("Unable to launch job. Probably ${name}(${type}) didn't created: "+e.getMessage(), "Unable to launch job")
 		}
 	}
 
@@ -97,8 +95,7 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 			return job_events
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.failed=true
-			awx.error_messages.add("Unable to read page->next. Probably page '${path}' doesn't exist: "+e.getMessage())
+			awx.addError("Unable to read page->next. Probably page '${path}' doesn't exist: "+e.getMessage(), "Unable to read page->next")
 			return job_events
 		}
 	}
@@ -117,8 +114,7 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 			awx.out.echo(stdout_full.join('\n'))
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.failed=true
-			awx.error_messages.add("Unable to receive job_events. Probably ${name}(${type}) didn't created: "+e.getMessage())
+			awx.addError("Unable to receive job_events. Probably ${name}(${type}) didn't created: "+e.getMessage(), "Unable to receive job_events")
 			awx.out.echo(stdout_full.join('\n'))
 		}
 	}
