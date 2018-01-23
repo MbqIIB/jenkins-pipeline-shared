@@ -21,7 +21,9 @@ def call(String[] playbooks = ["playbook.yml"] , String inventory_file = "invent
     if (repo.startsWith('ansible-')) {
         repo = repo.substring(8)
     }
-    def name = "${repo}(${sha.substring(0,7)})" // general name of awx's objects
+    def randhash = sh(returnStdout: true, script: "echo \"\$(date +%s%N)\$(tr -cd '[:alnum:]' < /dev/urandom \
+        | fold -w30 | head -n1)\" | md5sum | cut -d ' ' -f 1").trim().replaceAll("[\n]{2,}", "\n")
+    def name = "${repo}(${sha.substring(0,7)})-[${randhash.substring(0,8)}]" // general name of awx's objects
     def unlock_playbook = "unlock.yml"
     def unlock_required = fileExists(unlock_playbook)    
 

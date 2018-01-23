@@ -26,11 +26,13 @@ def call(String[] playbooks = ["playbook.yml"] , Map<String, String> hosts,
     def unlock_playbook = "unlock.yml"
     def unlock_required = fileExists(unlock_playbook)
 
+    def randhash = sh(returnStdout: true, script: "echo \"\$(date +%s%N)\$(tr -cd '[:alnum:]' < /dev/urandom \
+        | fold -w30 | head -n1)\" | md5sum | cut -d ' ' -f 1").trim().replaceAll("[\n]{2,}", "\n")
     def sha // commit/tag which will be used for provision
-    def name // general name of awx's objects    
+    def name // general name of awx's objects
     if (external_sha == '') {
         sha = original_sha
-        name = "${repo}(${sha.substring(0,7)})"
+        name = "${repo}(${sha.substring(0,7)})-[${randhash.substring(0,8)}]"
     }
     else {
         sha = external_sha
@@ -38,7 +40,7 @@ def call(String[] playbooks = ["playbook.yml"] , Map<String, String> hosts,
             external_sha = "${external_sha.substring(0,7)}"
         }
         // if we got external sha/tag we will mark it name to prevent of conflicts in awx
-        name = "${repo}(${original_sha.substring(0,7)})/(${external_sha})"
+        name = "${repo}(${original_sha.substring(0,7)})/(${external_sha})-[${randhash.substring(0,8)}]"
     }
  
 
