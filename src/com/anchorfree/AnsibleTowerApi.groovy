@@ -70,10 +70,20 @@ class AnsibleTowerApi {
 		return new groovy.json.JsonSlurper().parseText(response.bodyText())
 	}
 
-	def waitStatus(obj = subj, String path = "api/v2/${type}/${subj.id}/" ) {
-		while( obj.status =~ /^(new)|(waiting)|(pending)|(running)$/) {
+	def waitStatus(obj = subj, String path = "api/v2/${type}/${subj.id}/",  timeout = 120 ) {
+		if(type == "job_templates") {
+			timeout = 3600
+		}
+		Date finish = new Date()
+		Date current = new Date()
+		finish.setTime(finish.getTime()+(timeout*1000))
+		while( current.before(finish) && (obj.status =~ /^(new)|(waiting)|(pending)|(running)$/) ) {
 			sleep(5000)
+			current = new Date()
 			obj = update(path)
+		}
+		if ( current.before(finish) == false ) {
+			awx.addError("${path} exited by timeout (${timeout}s)", "Exited by timeout")
 		}
 		return obj
 	}
@@ -86,7 +96,7 @@ class AnsibleTowerApi {
 			}			
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.addError("Unable to receive status. Probably ${name}(${type}) didn't created: "+e.getMessage(), "Unable to receive status")
+			awx.addError("Unable to receive status for ${name}(${type}): "+e.getMessage(), "Unable to receive status")
 		}
 	}
 
