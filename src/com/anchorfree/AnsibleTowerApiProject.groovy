@@ -28,7 +28,7 @@ class AnsibleTowerApiProject extends AnsibleTowerApi {
 	        'scm_clean': 'true',
 	        'credential': awx_cred_id,
 	        'organization': awx_org_id,
-	        'scm_update_on_launch': 'true' ]
+	        'scm_update_on_launch': 'false' ]
 	    def response = new JenkinsHttpClient().postJson(awx.host, "api/v2/projects/", messageBody, awx.user, awx.password)
 	    if (checkResponse(response, "Unable to create project ${name}", "Unable to create project") != true ) { return null }
 		subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
