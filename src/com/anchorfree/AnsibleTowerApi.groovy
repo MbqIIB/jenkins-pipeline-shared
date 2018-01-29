@@ -70,9 +70,9 @@ class AnsibleTowerApi {
 		return new groovy.json.JsonSlurper().parseText(response.bodyText())
 	}
 
-	def waitStatus(obj = subj, String path = "api/v2/${type}/${subj.id}/",  timeout = 120 ) {
+	def waitStatus(obj = subj, String path = "api/v2/${type}/${subj.id}/",  timeout = 600 ) {
 		if(type == "job_templates") {
-			timeout = 3600
+			timeout = 7200
 		}
 		Date finish = new Date()
 		Date current = new Date()
