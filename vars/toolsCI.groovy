@@ -65,6 +65,19 @@ def genNodeName (String prefix = "" , String postfix = "" ) {
 }
 
 /***
+* Provide regression test
+*/
+def regression (String entrypoint, String host, String buildNumber, String password, String user = "jenkins" ) {
+    def response = sh(returnStdout: true, script: "wget -O - --no-verbose --no-check-certificate --tries=1 '${entrypoint}/test_server?host=${host}&srv=${buildNumber}&user=${user}&test_set=all&pwd=${password}'").trim()
+    def tokens = response.tokenize(',')
+    def id=tokens[0]
+    def status=tokens[1]
+    def link="${entrypoint}/index.php?view=platform&req=${id}"
+    echo("Regression link: ${link}")
+    return ["link":link, "status":status]
+}
+
+/***
 * Wait until node's info from itadmin will be registered in consul
 */
 def waitItadminConsulSync(name) {

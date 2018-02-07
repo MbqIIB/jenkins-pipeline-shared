@@ -65,7 +65,12 @@ class AnsibleTowerApi {
     }
 
 	def update(String path = "api/v2/${type}/${subj.id}/" ) {
-	    def response = new JenkinsHttpClient().get(awx.host, path, awx.user, awx.password)
+		try {
+			def response = new JenkinsHttpClient().get(awx.host, path, awx.user, awx.password)
+		}
+		catch(java.lang.NullPointerException e) {
+			awx.addError("Unable to update. Probably ${name}(${type}) didn't created: "+e.getMessage(), "Unable to update")
+		}
 	    if (checkResponse(response, "Unable to receive status of ${path}") != true ) { return null } 
 		return new groovy.json.JsonSlurper().parseText(response.bodyText())
 	}
