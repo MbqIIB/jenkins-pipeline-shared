@@ -8,18 +8,22 @@ class AnsibleTowerApiProject extends AnsibleTowerApi {
 	String name
 	String scm_path
 	String scm_branch // also could be a tag or sha
+	String awx_cred_name
+	String awx_org_name
 	String awx_cred_id
 	String awx_org_id
 	def project_update = null
 
 	AnsibleTowerApiProject(AnsibleTowerApi a, String n, String p, String b, String c, String o) {
-		super(a); name = n; scm_path = p; scm_branch = b; awx_cred_id = c; awx_org_id = o
+		super(a); name = n; scm_path = p; scm_branch = b; awx_cred_name = c; awx_org_name = o
 		type = "projects"
 	}
 
 	// We can't call awx' REST API from constructors due https://issues.jenkins-ci.org/browse/JENKINS-26313
 	// So we had to create make() method
 	def make() {
+		awx_cred_id = getIDbyName("credentials", awx_cred_name)
+		awx_org_id = getIDbyName("organizations", awx_org_name)
 	    def messageBody = ['name': name,
 	        'description': "Created by jenkins",
 	        'scm_type': 'git',
@@ -43,10 +47,9 @@ class AnsibleTowerApiProject extends AnsibleTowerApi {
 	def stdout() {
 		try {
 			def response = new JenkinsHttpClient().get(awx.host,
-				"api/v2/project_updates/${subj.summary_fields.last_job.id}/", awx.user, awx.password)
-		    if (checkResponse(response, "Unable to trigger project update ${name}") != true ) { return null }
-			project_update = new groovy.json.JsonSlurper().parseText(response.bodyText())
-			awx.out.echo("Stdout of project update ${name}\n"+project_update.result_stdout)
+				"api/v2/project_updates/${subj.summary_fields.last_job.id}/stdout/?format=ansi", awx.user, awx.password)
+		    if (checkResponse(response, "Unable to get project's stdout ${name}") != true ) { return null }
+			awx.out.echo("Stdout of project update ${name}\n"+response)
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.addError("Unable to get job_events. Probably ${name}(${type}) didn't created: "+e.getMessage(), "Unable to get job_events")

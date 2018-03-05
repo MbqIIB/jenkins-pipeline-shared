@@ -1,4 +1,5 @@
 #!/usr/bin/env groovy
+import groovy.json.JsonSlurper
 
 /***
 * Create node in DO and itadmin
@@ -9,9 +10,21 @@ def createNode(do_token, itadmin_token, name, ssh_keys, image, region, size) {
     sh("doctl -t ${do_token} compute droplet list --format 'Name' | egrep -v -q '^${name}\$'")
     sh("ITADMIN_KEY=${itadmin_token} itadmin-cli read ${name} </dev/null 2>&1 | grep -q '^404 Not Found'")
     // Create node
-    def ip = sh(returnStdout: true, script: "doctl -t ${do_token} compute droplet create $name --size ${size} \
-        --image ${image} --region ${region} --ssh-keys ${ssh_keys} --wait --no-header -o json \
-        | jq -r '.[].networks.v4[].ip_address'").trim().replaceAll("[\n]{2,}", "\n")
+    def ip = null
+    def response = sh(returnStdout: true, script: "doctl -t ${do_token} compute droplet create $name --size ${size} \
+        --image ${image} --region ${region} --ssh-keys ${ssh_keys} --wait --no-header -o json").trim().replaceAll("[\n]{2,}", "\n")
+    try {
+        def nodes = new groovy.json.JsonSlurper().parseText(response)
+        nodes.each { node ->
+            node.networks.v4.each { network ->
+                ip = network.ip_address
+            }
+        }
+    }
+    catch(Exception e) {
+        echo("The response for debug:\n"+response)
+        error("Unable to get IP of new node")
+    }
     sh("ITADMIN_KEY=${itadmin_token} itadmin-cli create ${name} ${ip} 1 18 </dev/null 2>&1")
     return ip
 }

@@ -60,12 +60,12 @@ def call(String[] playbooks = ["playbook.yml"] , Map<String, String> hosts,
     * and we make playbooks's result more readable.
     */
     def awx_git_cred, awx_ssh_cred, awx_org
-    withCredentials([string(credentialsId: 'awx_git_cred', variable: 'awx_git_cred_id'),
-                    string(credentialsId: 'awx_ssh_cred', variable: 'awx_ssh_cred_id'),
-                    string(credentialsId: 'awx_org', variable: 'awx_org_id')]) {
-        awx_git_cred = awx_git_cred_id
-        awx_ssh_cred = awx_ssh_cred_id
-        awx_org = awx_org_id
+    withCredentials([string(credentialsId: 'awx_git_cred', variable: 'awx_git_cred_name'),
+                    string(credentialsId: 'awx_ssh_cred', variable: 'awx_ssh_cred_name'),
+                    string(credentialsId: 'awx_org', variable: 'awx_org_name')]) {
+        awx_git_cred = awx_git_cred_name
+        awx_ssh_cred = awx_ssh_cred_name
+        awx_org = awx_org_name
     }
 
     withCredentials([usernamePassword(credentialsId: 'awx', usernameVariable: 'user', passwordVariable: 'password'),

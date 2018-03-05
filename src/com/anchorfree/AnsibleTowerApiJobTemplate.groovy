@@ -7,6 +7,7 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 	String name = null
 	String job_type = null
 	String playbook = null
+	String credential_name = null
 	String credential = null
 	String extra_vars = null
 	String limit = null
@@ -21,7 +22,7 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 			AnsibleTowerApiProject pr, AnsibleTowerApiInventory i, String become,
 			String l, String tags, String skip, String start) {
 		super(a); name = n; job_type = t; playbook = pl;
-		credential = c; extra_vars = v; project = pr; inventory = i; become_enabled = become
+		credential_name = c; extra_vars = v; project = pr; inventory = i; become_enabled = become
 		limit = l; job_tags = tags; skip_tags = skip; start_at_task = start
 		type = "job_templates"
 	}
@@ -30,6 +31,7 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 	// So we had to create make() method
 	def make() {
 		try {
+			credential = getIDbyName("credentials", credential_name)
 		    def messageBody = ['name': name,
 				'description': "Created by jenkins",
 				'job_type': job_type,

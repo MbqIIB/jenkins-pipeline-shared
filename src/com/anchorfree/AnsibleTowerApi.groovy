@@ -124,6 +124,25 @@ class AnsibleTowerApi {
 			awx.addError("Unable to remove. Probably ${name}(${type}) didn't created: "+e.getMessage(), "Unable to remove")
 		}
 	}
+
+	def getIDbyName(String type, String name) {
+		def id = null
+		try {
+			def response = new JenkinsHttpClient().get(awx.host, "api/v2/${type}/", awx.user, awx.password)
+		    if (checkResponse(response, "Unable to get ${type}", "Unable to get ${type}") != true ) { return null }
+			def subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
+			subj.results.each { i ->
+				if ( i.name == name ) { id = i.id }
+			}
+		}
+		catch(java.lang.NullPointerException e) {
+			awx.addError("Unable to get ID of '${name}' ('${type}'): "+e.getMessage(), "Unable to get ID")
+			return id
+		}
+		if ( id == null) {
+			awx.addError("Unable to get ID of '${name}' ('${type}'): such object was not found", "Unable to get ID")
+		}
+		return id
+	}
+
 }
-
-

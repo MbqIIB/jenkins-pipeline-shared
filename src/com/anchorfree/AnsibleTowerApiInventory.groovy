@@ -97,7 +97,10 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 
 	def stdout() {
 		try {
-			awx.out.echo("Stdout of inventory update ${name}\n"+inventory_update.result_stdout)
+			def response = new JenkinsHttpClient().get(awx.host,
+				"api/v2/inventory_updates/${inventory_update.id}/stdout/?format=ansi", awx.user, awx.password)
+		    if (checkResponse(response, "Unable to get inventory's stdout ${name}") != true ) { return null }
+			awx.out.echo("Stdout of inventory update ${name}\n"+response)
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.addError("Unable to receive stdout of inventory update. Probably ${name}(inventory_updates) didn't created: "+e.getMessage(), "No stdout for inventory update")
