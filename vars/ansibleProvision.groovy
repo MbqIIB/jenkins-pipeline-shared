@@ -9,8 +9,8 @@ import com.anchorfree.AnsibleTowerApi
 // and work back from the branch level Pipeline job where this would actually be run
 // Note: that branch job is at -1 because Java uses zero-based indexing
 
-def call(String[] playbooks = ["playbook.yml"] , Map<String, String> hosts,
-            extra_vars = '', limit = '', become = 'true', job_tags = '', skip_tags = '', external_sha = '') {
+def call(String[] playbooks, Map<String, String> hosts,
+            extra_vars = '', limit = '', become = 'true', job_tags = '', skip_tags = '', external_sha = '', awx_host_credentials_id = 'awx_host') {
     def tokens = "${env.JOB_NAME}".tokenize('/')
     def org = tokens[tokens.size()-3]
     def repo = tokens[tokens.size() - 2]
@@ -70,7 +70,7 @@ def call(String[] playbooks = ["playbook.yml"] , Map<String, String> hosts,
 
     withCredentials([usernamePassword(credentialsId: 'awx', usernameVariable: 'user', passwordVariable: 'password'),
             string(credentialsId: 'awx_git_crypt_key_path', variable: 'awx_git_crypt_key_path'),
-            string(credentialsId: 'awx_host', variable: 'awx_host')]) {
+            string(credentialsId: awx_host_credentials_id, variable: 'awx_host')]) {
 
         def unlock_vars = "git_crypt_key_path: ${awx_git_crypt_key_path}"
 
@@ -110,4 +110,28 @@ def call(String[] playbooks = ["playbook.yml"] , Map<String, String> hosts,
         echo("Verify overall result of provisioning")
         awx.checkOverallStatus()
     }
+}
+
+def call(args) {
+
+    String[] playbooks = ["playbook.yml"]
+    Map<String, String> hosts
+    def extra_vars = ''
+    def limit = ''
+    def become = 'true'
+    def job_tags = ''
+    def skip_tags = ''
+    def external_sha = ''
+    def awx_host_credentials_id = 'awx_host'
+
+    if (args.playbooks != null) { playbooks = args.playbooks }
+    if (args.hosts != null) { hosts = args.hosts }
+    if (args.extra_vars != null) { extra_vars = args.extra_vars }
+    if (args.limit != null) { limit = args.limit }
+    if (args.become != null) { become = args.become }
+    if (args.job_tags != null) { job_tags = args.job_tags }
+    if (args.skip_tags != null) { skip_tags = args.skip_tags }
+    if (args.external_sha != null) { external_sha = args.external_sha }
+    if (args.awx_host_credentials_id != null) { awx_host_credentials_id = args.awx_host_credentials_id }
+    call(playbooks, hosts, extra_vars, limit, become, job_tags, skip_tags, external_sha, awx_host_credentials_id)
 }

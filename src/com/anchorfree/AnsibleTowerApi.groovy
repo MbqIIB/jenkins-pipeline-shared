@@ -15,6 +15,8 @@ class AnsibleTowerApi {
 	String type = null
 	def error_messages = []
 	def failed = false
+	def wait_between_api_attempts = 5000
+	def number_of_attempts = 3
 	Script out // for echo to jenkins log
 
 	AnsibleTowerApi(String a, String u, String p, Script o) { host = a; user = u; password = p; out = o; awx = this }
@@ -48,26 +50,74 @@ class AnsibleTowerApi {
 		if (error != null) {try { awx.out.error(error) } catch (err) {}}
 	}
 
+	// To be tolerant for connection interruptions and AWX's internal issues
+	// return response if it's good
+	def tolerantHttpClient(String method, String path, String error, messageBody = [:]) {
+		def check
+		def response
+		for(def retry = 0; retry < number_of_attempts; retry++) {
+			switch (method) {
+				case "get": response = new JenkinsHttpClient().get(awx.host, path, awx.user, awx.password); break;
+				case "post": response = new JenkinsHttpClient().postJson(awx.host, path, messageBody, awx.user, awx.password); break;
+				case "delete": response = new JenkinsHttpClient().delete(awx.host, path, awx.user, awx.password); break;
+				default: awx.addError("tolerantHttpClient: incorrect method \"${method}\"");
+			}
+		    check = checkResponse(response)
+		    if (check == true ) { return response }
+		    // Remove a running job if it is blocking the query
+			if (String.valueOf(response.statusCode()) == "409") {
+				def conflict = new groovy.json.JsonSlurper().parseText(response.bodyText())
+				if(conflict.conflict == "Resource is being used by running jobs.") {
+					conflict.active_jobs.each { job ->
+						def cancelation_response = tolerantHttpClient("post",
+							"/api/v2/jobs/${job.id}/cancel/",
+							"Unable to cancel job ${job.id}", [:])
+						if (cancelation_response != null) { awx.out.echo("Job ${job.id} has been canceled")	}
+					}
+					sleep(wait_between_api_attempts*4)
+				}
+		    }
+		    sleep(wait_between_api_attempts)
+		}
+		// if retry != 0 and check == "record already exist"; do "I'm ok with it"
+		awx.addError("${error}:\n${check}", error)
+	    return null
+	}
+
+	def tolerantMake(messageBody, String obj_type = type, String obj_name = name, String error = "Unable to create ${name}(${type})") {
+	    try {
+			def response = tolerantHttpClient("post", "api/v2/${obj_type}/", error, messageBody)
+			if (response != null) {
+				return new groovy.json.JsonSlurper().parseText(response.bodyText())
+			}
+		    // Do not give up and try to get object
+		    def subj_id = getIDbyName(obj_type, obj_name)
+		    return update("api/v2/${obj_type}/${obj_id}/")
+	    }
+	    catch(Exception e) {
+			awx.addError("${error}:\n"+e.getMessage(), error)
+			return null
+	    }
+	}
+
 	// Check that response's code is 2xx
-    def checkResponse(response, String message, error = null) {
+    def checkResponse(response) {
 		try {
 			if (String.valueOf(response.statusCode()).take(1) != "2") {
-				awx.addError("${message}. Response: ${response.statusCode()} ${response.statusPhrase()}; Message: ${response.bodyText()}", error)
-				return false
+				return "Response: ${response.statusCode()} ${response.statusPhrase()}; Message: ${response.bodyText()}"
 		    }
 		    return true
 		}
 		catch(Exception e) {
-			awx.addError("Unable to receive response: \n"+e.getMessage(), error)
-			return false
+			return "Unable to receive response: \n"+e.getMessage()
 		}
 
     }
 
 	def update(String path = "api/v2/${type}/${subj.id}/" ) {
 		try {
-			def response = new JenkinsHttpClient().get(awx.host, path, awx.user, awx.password)
-			if (checkResponse(response, "Unable to receive status of ${path}") != true ) { return null } 
+			def response = tolerantHttpClient("get", path, "Unable to receive status of ${path}")
+			if (response == null) { return null } 
 			return new groovy.json.JsonSlurper().parseText(response.bodyText())
 		}
 		catch(java.lang.NullPointerException e) {
@@ -116,9 +166,9 @@ class AnsibleTowerApi {
 
 	def remove(obj = subj, String path = type) {
 		try {
-		    def response = new JenkinsHttpClient().delete(awx.host, "api/v2/${path}/${obj.id}/", awx.user, awx.password)
-		    checkResponse(response, "Unable to remove ${path}/${obj.id} ")
-		    return response.bodyText()			
+			def response = tolerantHttpClient("delete", "api/v2/${path}/${obj.id}/", "Unable to remove ${path}/${obj.id}")
+			if (response == null) { return null }
+			return response.bodyText()
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.addError("Unable to remove. Probably ${name}(${type}) didn't created: "+e.getMessage(), "Unable to remove")
@@ -128,11 +178,12 @@ class AnsibleTowerApi {
 	def getIDbyName(String type, String name) {
 		def id = null
 		try {
-			def response = new JenkinsHttpClient().get(awx.host, "api/v2/${type}/", awx.user, awx.password)
-		    if (checkResponse(response, "Unable to get ${type}", "Unable to get ${type}") != true ) { return null }
-			def subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
-			subj.results.each { i ->
-				if ( i.name == name ) { id = i.id }
+			def response = tolerantHttpClient("get", "api/v2/${type}/", "Unable to get ID of ${name} (${type})")
+		    if (response != null) {
+				def subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
+				subj.results.each { i ->
+					if ( i.name == name ) { id = i.id }
+				}
 			}
 		}
 		catch(java.lang.NullPointerException e) {

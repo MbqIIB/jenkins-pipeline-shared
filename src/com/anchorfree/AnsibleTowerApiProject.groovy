@@ -33,9 +33,7 @@ class AnsibleTowerApiProject extends AnsibleTowerApi {
 	        'credential': awx_cred_id,
 	        'organization': awx_org_id,
 	        'scm_update_on_launch': 'false' ]
-	    def response = new JenkinsHttpClient().postJson(awx.host, "api/v2/projects/", messageBody, awx.user, awx.password)
-	    if (checkResponse(response, "Unable to create project ${name}", "Unable to create project") != true ) { return null }
-		subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
+	    subj = tolerantMake(messageBody)
 	}
 
 	def createInventory(String inventory_name, String inventory_file = '') {
@@ -46,13 +44,21 @@ class AnsibleTowerApiProject extends AnsibleTowerApi {
 
 	def stdout() {
 		try {
-			def response = new JenkinsHttpClient().get(awx.host,
-				"api/v2/project_updates/${subj.summary_fields.last_job.id}/stdout/?format=ansi", awx.user, awx.password)
-		    if (checkResponse(response, "Unable to get project's stdout ${name}") != true ) { return null }
+			def response
+			try {
+				response = tolerantHttpClient("get",
+				"api/v2/project_updates/${subj.summary_fields.last_job.id}/stdout/?format=ansi",
+				"Unable to get project's stdout ${name}")
+			}
+			catch(java.lang.NullPointerException e) {
+				response = tolerantHttpClient("get",
+					"api/v2/project_updates/${subj.summary_fields.current_job.id}/stdout/?format=ansi",
+					"Unable to get project's stdout ${name}")
+			}
 			awx.out.echo("Stdout of project update ${name}\n"+response)
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.addError("Unable to get job_events. Probably ${name}(${type}) didn't created: "+e.getMessage(), "Unable to get job_events")
+			awx.addError("Unable to get ${name} project stdout: "+e.getMessage(), "Unable to get project stdout")
 		}
 	}
 }

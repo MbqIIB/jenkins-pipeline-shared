@@ -22,10 +22,7 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 	        'description': "Created by jenkins",
 	        'organization': project.awx_org_id,
 	        'kind':'' ]
-	    def response = new JenkinsHttpClient().postJson(awx.host, "api/v2/inventories/",
-	    	messageBody, awx.user, awx.password)
-	    if (checkResponse(response, "Unable to create inventory ${name}") != true ) { return null }
-		subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
+		subj = tolerantMake(messageBody)
 		if (inventory_file != '') { inventory_source = createInventorySource(name) }
 	}
 
@@ -35,9 +32,9 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 	        'enabled': true,
 	        'instance_id': '',
 	        'variables': host_variables ]
-	    def response = new JenkinsHttpClient().postJson(awx.host, "api/v2/inventories/${subj.id}/hosts/",
-	    	messageBody, awx.user, awx.password)
-	    if (checkResponse(response, "Unable to add host ${host_name} to inventory ${name}") != true ) { return null }
+		def response = tolerantHttpClient("post",
+			"api/v2/inventories/${subj.id}/hosts/",
+			"Unable to add host ${host_name} to inventory ${name}", messageBody)
 	}
 
 	def createInventorySource(String inventory_source_name) {
@@ -61,10 +58,7 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 				'update_cache_timeout': 0,
 				'source_project': project.subj.id,
 				'update_on_project_update': false ]
-		    def response = request.postJson(awx.host, "api/v2/inventories/${subj.id}/inventory_sources/",
-		    	messageBody, awx.user, awx.password)
-		    if (checkResponse(response, "Unable to create inventory source ${inventory_source_name}") != true ) { return null }
-			return new groovy.json.JsonSlurper().parseText(response.bodyText())
+		    return tolerantMake(messageBody, "inventories/${subj.id}/inventory_sources", inventory_source_name)
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.addError("Unable to create inventory source ${inventory_source_name}. Probably ${project.name}(${project.type}) didn't created: \n"+e.getMessage(), "Unable to create inventory source")
@@ -74,8 +68,10 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 
 	def launch() {
 		try {
-		    def response = new JenkinsHttpClient().postJson(awx.host, "/api/v2/inventory_sources/${inventory_source.id}/update/", [:], awx.user, awx.password)
-		    if (checkResponse(response, "Unable to trigger inventory update ${name}") != true ) { return null }
+			def response = tolerantHttpClient("post",
+				"/api/v2/inventory_sources/${inventory_source.id}/update/",
+				"Unable to trigger inventory update ${name}", [:])
+			if (response == null) { return null }
 			inventory_update = new groovy.json.JsonSlurper().parseText(response.bodyText())			
 		}
 		catch(java.lang.NullPointerException e) {
@@ -97,13 +93,14 @@ class AnsibleTowerApiInventory extends AnsibleTowerApi {
 
 	def stdout() {
 		try {
-			def response = new JenkinsHttpClient().get(awx.host,
-				"api/v2/inventory_updates/${inventory_update.id}/stdout/?format=ansi", awx.user, awx.password)
-		    if (checkResponse(response, "Unable to get inventory's stdout ${name}") != true ) { return null }
+			def response = tolerantHttpClient("get",
+				"api/v2/inventory_updates/${inventory_update.id}/stdout/?format=ansi",
+				"Unable to get inventory's stdout ${name}")
+		    if (response == null) { return null } 
 			awx.out.echo("Stdout of inventory update ${name}\n"+response)
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.addError("Unable to receive stdout of inventory update. Probably ${name}(inventory_updates) didn't created: "+e.getMessage(), "No stdout for inventory update")
+			awx.addError("Unable to obtain stdout of ${name} inventory update: "+e.getMessage(), "Unable to get obtain for inventory update")
 		}
 	}
 }

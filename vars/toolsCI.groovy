@@ -11,8 +11,16 @@ def createNode(do_token, itadmin_token, name, ssh_keys, image, region, size) {
     sh("ITADMIN_KEY=${itadmin_token} itadmin-cli read ${name} </dev/null 2>&1 | grep -q '^404 Not Found'")
     // Create node
     def ip = null
-    def response = sh(returnStdout: true, script: "doctl -t ${do_token} compute droplet create $name --size ${size} \
-        --image ${image} --region ${region} --ssh-keys ${ssh_keys} --wait --no-header -o json").trim().replaceAll("[\n]{2,}", "\n")
+    def response = null
+    try {
+        response = sh(returnStdout: true, script: "doctl -t ${do_token} compute droplet create $name --size ${size} \
+            --image ${image} --region ${region} --ssh-keys ${ssh_keys} --wait --no-header -o json").trim().replaceAll("[\n]{2,}", "\n")
+    }
+    catch(Exception e) {
+        echo("The response for debug:\n"+response)
+        echo("Exception: "+e.getMessage())
+        error("Unable to create node in DO")
+    }
     try {
         def nodes = new groovy.json.JsonSlurper().parseText(response)
         nodes.each { node ->

@@ -64,9 +64,7 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 				'become_enabled': become_enabled,
 				'diff_mode': false,
 				'allow_simultaneous': false ]
-		    def response = new JenkinsHttpClient().postJson(awx.host, "api/v2/job_templates/", messageBody, awx.user, awx.password)
-		    if (checkResponse(response, "Unable to create job template ${name}") != true ) { return null }
-			subj = new groovy.json.JsonSlurper().parseText(response.bodyText())
+			subj = tolerantMake(messageBody)
 		}
 		catch(java.lang.NullPointerException e) {
 			awx.addError("Unable to create job template ${name}. Probably ${project.name}(${project.type}) or ${inventory.name}(${inventory.type}) didn't created: "+e.getMessage(), "Unable to create job template")
@@ -76,8 +74,10 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 	//We can leave job (not template) class and get related info from job_template
 	def launch() {
 		try {
-		    def response = new JenkinsHttpClient().postJson(awx.host, "/api/v2/job_templates/${subj.id}/launch/", [:], awx.user, awx.password)
-		    if (checkResponse(response, "Unable to launch job ${name}") != true ) { return null }
+			def response = tolerantHttpClient("post",
+				"/api/v2/job_templates/${subj.id}/launch/",
+				"Unable to launch job ${name}", [:])
+			if (response == null) { return null }
 			subj = update("api/v2/${type}/${subj.id}/")			
 		}
 		catch(java.lang.NullPointerException e) {
@@ -87,8 +87,8 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 
 	def getJobEvents(job_events, String path) {
 		try {
-			def response = new JenkinsHttpClient().get(awx.host, path, awx.user, awx.password)
-		    if (checkResponse(response, "Unable to receive job's events ${name}") != true ) { return null }
+			def response = tolerantHttpClient("get", path, "Unable to receive job's events ${name}")
+			if (response == null) { return null }
 			def page = new groovy.json.JsonSlurper().parseText(response.bodyText())
 			job_events.add(page)
 			if (page.next != null) {
@@ -106,7 +106,12 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 		def stdout_full = []
 		def job_events = []
 		try {
-			job_events = getJobEvents(job_events, "api/v2/jobs/${subj.summary_fields.last_job.id}/job_events/")
+			try {
+				job_events = getJobEvents(job_events, "api/v2/jobs/${subj.summary_fields.last_job.id}/job_events/")
+			}
+			catch(java.lang.NullPointerException e) {
+				job_events = getJobEvents(job_events, "api/v2/jobs/${subj.summary_fields.current_job.id}/job_events/")
+			}
 			stdout_full.add("Stdout of ${name}")
 			job_events.each { page ->
 				page.results.each { event ->
@@ -116,7 +121,7 @@ class AnsibleTowerApiJobTemplate extends AnsibleTowerApi {
 			awx.out.echo(stdout_full.join('\n'))
 		}
 		catch(java.lang.NullPointerException e) {
-			awx.addError("Unable to receive job_events. Probably ${name}(${type}) didn't created: "+e.getMessage(), "Unable to receive job_events")
+			awx.addError("Unable to receive ${name}(${type}) job_events: "+e.getMessage(), "Unable to receive job_events")
 			awx.out.echo(stdout_full.join('\n'))
 		}
 	}
