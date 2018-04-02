@@ -60,13 +60,13 @@ def removeNode(do_token, itadmin_token, name) {
 /***
 * Generate node's name based on ticket number/sha
 */
-def genNodeName (String prefix = "" , String postfix = "" ) {
+def genNodeName (String prefix = "" , String postfix = "", String job_name = env.JOB_NAME ) {
     //Hostname limitted 30 chars (SEC-1025)
     def nodeName = ""
-    if ( "${prefix}${postfix}".length() > 14 ) {
-        error("Prefix+Postfix should be less 18 chars")
+    if ( "${prefix}${postfix}".length() > 15 ) {
+        error("Prefix+Postfix should be less 16 chars")
     }
-    def tokens = "${env.JOB_NAME}".tokenize('/')
+    def tokens = job_name.tokenize('/')
     def org = tokens[tokens.size()-3]
     def repo = tokens[tokens.size() - 2]
     def branch = tokens[tokens.size() - 1].replaceAll('%2F','-')
@@ -76,12 +76,12 @@ def genNodeName (String prefix = "" , String postfix = "" ) {
     if((jiraTicket == "")||(jiraTicket.length()>10)) {
         tag = sha.substring(0,7)
     } else {
-        tag = jiraTicket.toLowerCase()
+        tag = jiraTicket.toLowerCase().replaceAll('-','')
     }
     def randhash = sh(returnStdout: true, script: "echo \"\$(date +%s%N)\$(tr -cd '[:alnum:]' < /dev/urandom \
                         | fold -w30 | head -n1)\" | md5sum | cut -d ' ' -f 1").trim().replaceAll("[\n]{2,}", "\n")
 
-    nodeName = "${prefix}-${tag}-${randhash.substring(0,3)}-${postfix}"
+    nodeName = "${prefix}-${tag}-${randhash.substring(0,3)}${postfix}"
     return nodeName
 }
 
@@ -91,10 +91,20 @@ def genNodeName (String prefix = "" , String postfix = "" ) {
 def regression (String entrypoint, String host, String buildNumber, String password, String linkbase, String user = "jenkins" ) {
     def response = sh(returnStdout: true, script: "wget -O - --no-verbose --no-check-certificate --tries=1 '${entrypoint}/test_server?host=${host}&srv=${buildNumber}&user=${user}&test_set=all&pwd=${password}'").trim()
     def tokens = response.tokenize(',')
-    def id=tokens[0]
-    def status=tokens[1]
-    def link="${linkbase}/index.php?view=platform&req=${id}"
-    echo("Regression link: ${link}")
+    def id
+    def status
+    def link
+    try {
+	    id=tokens[0]
+	    status=tokens[1]
+	    link="${linkbase}/index.php?view=platform&req=${id}"
+    	echo("Regression rusult: ${status}\n${link}")
+    }
+    catch(Exception e) {
+    	echo("Regression response:\n"+response)
+    	echo("Regression response is incorrect:\n"+e.getMessage())
+    	error("Regression response is incorrect")
+    }
     return ["link":link, "status":status]
 }
 
