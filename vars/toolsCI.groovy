@@ -146,6 +146,111 @@ def slackStart(base_url, target, username = "CI", text = "\"text\": \"Build <${e
 
 }
 
+def slackAPI(secret, target, username = "CI", external_text = "", external_ts = "", color = "", external_title = "", extra = "") {
+    echo("Start slack messaging")
+    def tokens = "${env.JOB_NAME}".tokenize('/')
+    def org = tokens[tokens.size() - 3]
+    def repo = tokens[tokens.size() - 2]
+    def branch = tokens[tokens.size() - 1].replaceAll('%2F','-')
+    def text = external_text ?: "Staging for _${branch}_ [${env.BUILD_NUMBER}] has been started (<${env.RUN_DISPLAY_URL}|parent build>)"
+    def thread_ts = external_ts ? "\"thread_ts\":\"${external_ts}\"," : ""
+    if (external_title) {
+        pretext = "\"pretext\": \"${external_title}\","
+    } else {
+        pretext = ""
+    }
+    def body
+    if(color) {
+        body="\"attachments\": [ \
+                        { \
+                            \"fallback\": \"There are some stage results.\", \
+                            \"color\": \"${color}\", \
+                            ${pretext} \
+                            \"title\": \"${text}\", \
+                            ${extra} \
+                            \"mrkdwn_in\": [\"text\", \"pretext\", \"fields\"] \
+                        } \
+                    ],"
+    } else {
+        body="\"text\": \"${text}\","
+    }
+    def response
+    try {
+        response=sh(returnStdout: true, script: "curl -X POST \
+            -H 'Content-type: application/json' \
+            -H 'Authorization: Bearer ${secret}' \
+            --data '{ \
+                    ${body} \
+                    \"channel\": \"${target}\", \
+                    \"link_names\": 1, \
+                    \"username\": \"${username}\", \
+                    ${thread_ts} \
+                    \"icon_emoji\": \":jenkins:\" \
+                }' \
+            https://slack.com/api/chat.postMessage")
+        echo("Debug slack response: ${response}")
+    }
+    catch(Exception e) {
+        echo("Cannot send slack message:\n"+e.getMessage())
+    }
+    def result = new groovy.json.JsonSlurper().parseText(response)
+    return result.ts
+}
+
+
+def notify(args) {
+    username    = args.username ?: "CI"
+    ts          = args.ts ?: ""
+    targetUrl   = args.targetUrl ?: null
+    def text = ""
+    def title   = ""
+    def color
+    def marker
+    def status_source = args.overal ? currentBuild.result : args.status
+    def slack_extra = args.slack_extra ? "\"fields\": [ ${args.slack_extra} ]," : null
+    switch(status_source) {
+        case ["SUCCESS", null]:
+            color = "good"
+            marker = ":heavy_check_mark: "
+            break
+        case "FAILURE":
+            color = "danger"
+            marker = ":x: "
+            break
+        case "ERROR":
+            color = "warning"
+            marker = ":warning: "
+            break
+        case "ABORTED":
+            color = "null"
+            break
+        default:
+            color = ""
+            marker = ""
+            break
+    }
+    if(args.overal) {
+        title = args.context + " (<${env.RUN_DISPLAY_URL}|build>)"
+        text = args.description
+        if (currentBuild.result) { text += " (${currentBuild.result})" }
+    } else {
+        color = ""
+        text = "Step *${args.context}* (<${env.RUN_DISPLAY_URL}|build>)\n${marker} ${args.description}"
+        if (targetUrl) { text += " (<${targetUrl}|link>)" }
+    }
+    if (args.status != "PENDING") {
+        slackAPI(args.slack_secret, args.slack_target, username, text, ts, color, title, slack_extra)
+    }
+    if (args.status) {
+        githubNotify(status:args.status,description:args.description,context:args.context,repo:args.repo,sha:args.sha,targetUrl:targetUrl)
+    }
+    if ((args.status == "PENDING") && (args.failed != null)) {
+        return args.failed
+    }
+    // Jenkins do not permit use 'remove' method for maps
+    return ""
+}
+
 /***
 * Specific slack message about current jenkins build for staging procedure's result
 */
