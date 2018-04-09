@@ -238,7 +238,7 @@ def notify(args) {
         text = "Step *${args.context}* (<${env.RUN_DISPLAY_URL}|build>)\n${marker} ${args.description}"
         if (targetUrl) { text += " (<${targetUrl}|link>)" }
     }
-    if (args.status != "PENDING") {
+    if ((args.status != "PENDING") && (args.slack_switch == true)) {
         slackAPI(args.slack_secret, args.slack_target, username, text, ts, color, title, slack_extra)
     }
     if (args.status) {
