@@ -146,9 +146,9 @@ def slackStart(base_url, target, username = "CI", text = "\"text\": \"Build <${e
 
 }
 
-def slackAPI(secret, target, username = "CI", external_text = "", external_ts = "", color = "", external_title = "", extra = "") {
+def slackAPI(secret, target, username = "CI", job_name = env.JOB_NAME, external_text = "", external_ts = "", color = "", external_title = "", extra = "") {
     echo("Start slack messaging")
-    def tokens = "${env.JOB_NAME}".tokenize('/')
+    def tokens = "${job_name}".tokenize('/')
     def org = tokens[tokens.size() - 3]
     def repo = tokens[tokens.size() - 2]
     def branch = tokens[tokens.size() - 1].replaceAll('%2F','-')
@@ -188,7 +188,6 @@ def slackAPI(secret, target, username = "CI", external_text = "", external_ts = 
                     \"icon_emoji\": \":jenkins:\" \
                 }' \
             https://slack.com/api/chat.postMessage")
-        echo("Debug slack response: ${response}")
     }
     catch(Exception e) {
         echo("Cannot send slack message:\n"+e.getMessage())
@@ -238,8 +237,8 @@ def notify(args) {
         text = "Step *${args.context}* (<${env.RUN_DISPLAY_URL}|build>)\n${marker} ${args.description}"
         if (targetUrl) { text += " (<${targetUrl}|link>)" }
     }
-    if ((args.status != "PENDING") && (args.slack_switch == true)) {
-        slackAPI(args.slack_secret, args.slack_target, username, text, ts, color, title, slack_extra)
+    if ((args.status != "PENDING") && (args.slack_switch == 'true')) {
+        slackAPI(args.slack_secret, args.slack_target, username, env.JOB_NAME, text, ts, color, title, slack_extra)
     }
     if (args.status) {
         githubNotify(status:args.status,description:args.description,context:args.context,repo:args.repo,sha:args.sha,targetUrl:targetUrl)
