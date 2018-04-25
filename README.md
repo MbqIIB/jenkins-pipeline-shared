@@ -2,6 +2,14 @@
 
 Shared Pipeline Library for Jenkins builds at AF.
 
+After github project gets file "Jenkinsfile" in the root of project then
+CI begins to work. Jenkins will do new build on every push and do syntax
+check. Results of these can be viewed on a prject github page. Against every
+commit You can see red cross, green mark, orange circle or what ever. This
+is a brief build's result. You can pressit and view links to CI. In CI page
+You can brows log messages. For example ansible-playbook's log can be found
+there. Whatch CI pages and update Your PRs to correct errors.
+
 ## Docker builds
 
 [Steps for builds of docker containers](DOCKER.md)
