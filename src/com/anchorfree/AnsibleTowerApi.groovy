@@ -15,7 +15,8 @@ class AnsibleTowerApi {
 	String type = null
 	def error_messages = []
 	def failed = false
-	def wait_between_api_attempts = 5000
+	def wait_between_api_attempts = 5000 // milliseconds
+	def job_templates_timeout = 5400 // seconds
 	def number_of_attempts = 3
 	Script out // for echo to jenkins log
 
@@ -127,7 +128,7 @@ class AnsibleTowerApi {
 
 	def waitStatus(obj = subj, String path = "api/v2/${type}/${subj.id}/",  timeout = 600 ) {
 		if(type == "job_templates") {
-			timeout = 7200
+			timeout = job_templates_timeout
 		}
 		Date finish = new Date()
 		Date current = new Date()
