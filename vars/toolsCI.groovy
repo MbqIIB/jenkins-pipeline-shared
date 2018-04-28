@@ -118,34 +118,6 @@ def waitItadminConsulSync(name) {
     }
 }
 
-/***
-* Short slack message about current jenkins build
-*/
-def slackStart(base_url, target, username = "CI", text = "\"text\": \"Build <${env.RUN_DISPLAY_URL}|${branch} [${env.BUILD_NUMBER}]> has been started.\"") {
-    def tokens = "${env.JOB_NAME}".tokenize('/')
-    def org = tokens[tokens.size() - 3]
-    def repo = tokens[tokens.size() - 2]
-    def branch = tokens[tokens.size() - 1].replaceAll('%2F','-')
-
-    try {
-        sh("curl -X POST \
-            -H 'Content-type: application/json' \
-            --data '{ \
-                    ${text}, \
-                    \"channel\": \"${target}\", \
-                    \"link_names\": 1, \
-                    \"username\": \"${username}\", \
-                    \"icon_emoji\": \":jenkins:\" \
-                }' \
-            ${base_url} ")
-    }
-    catch(Exception e) {
-        echo("Cannot send slack message:\n"+e.getMessage())
-    }
-
-
-}
-
 def slackAPI(secret, target, username = "CI", job_name = env.JOB_NAME, external_text = "", external_ts = "", color = "", external_title = "", extra = "") {
     echo("Start slack messaging")
     def tokens = "${job_name}".tokenize('/')
@@ -251,36 +223,13 @@ def notify(args) {
 }
 
 /***
-* Specific slack message about current jenkins build for staging procedure's result
+* Run a speed test, wait 10m to be sure that it has been done
 */
-def slackStageFinished(base_url, target, username = "CI", color = "null", status = "", extra = "") {
-    def tokens = "${env.JOB_NAME}".tokenize('/')
-    def org = tokens[tokens.size() - 3]
-    def repo = tokens[tokens.size() - 2]
-    def branch = tokens[tokens.size() - 1].replaceAll('%2F','-')
-
-    try {
-        sh("curl -X POST \
-            -H 'Content-type: application/json' \
-            --data '{ \
-                    \"attachments\": [ \
-                        { \
-                            \"fallback\": \"There are some stage results.\", \
-                            \"color\": \"${color}\", \
-                            \"title\": \"Build ${branch} [${env.BUILD_NUMBER}]\", \
-                            \"title_link\": \"${env.RUN_DISPLAY_URL}\", \
-                            \"text\": \"Stage testing finished ${status}.\", \
-                            ${extra} \
-                        } \
-                    ], \
-                    \"channel\": \"${target}\", \
-                    \"link_names\": 1, \
-                    \"username\": \"${username}\", \
-                    \"icon_emoji\": \":jenkins:\" \
-                }' \
-            ${base_url} ")
+def speedTest(entrypoint, host, job = "speed_test_individual" ) {
+    echo("Start a speed test")
+    withCredentials([string(credentialsId: 'speed_test_token', variable: 'token')]) {
+        sh("wget -O - 'https://${entrypoint}/buildByToken/buildWithParameters?job=${job}&token=${token}&host=${host}'")
     }
-    catch(Exception e) {
-        echo("Cannot send slack message:\n"+e.getMessage())
-    }
+    echo("Wait 10m to be sure that the speed test has been done")
+    sleep(time: 600, unit: 'SECONDS')
 }
