@@ -89,7 +89,7 @@ def genNodeName (String prefix = "" , String postfix = "", String job_name = env
 * Provide regression test
 */
 def regression (String entrypoint, String host, String buildNumber, String password, String linkbase, String user = "jenkins" ) {
-    def response = sh(returnStdout: true, script: "wget -O - --no-verbose --no-check-certificate --tries=1 '${entrypoint}/test_server?host=${host}&srv=${buildNumber}&user=${user}&test_set=all&pwd=${password}'").trim()
+    def response = sh(returnStdout: true, script: "wget -O - --no-verbose --no-check-certificate --tries=1 '${entrypoint}/test_server?host=${host}&srv=${buildNumber}&user=${user}&test_set=full&pwd=${password}'").trim()
     def tokens = response.tokenize(',')
     def id
     def status
